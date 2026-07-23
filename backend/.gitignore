@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Prisma
+prisma/migrations/
+
+# Build
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

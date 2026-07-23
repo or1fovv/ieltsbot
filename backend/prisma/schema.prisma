@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =====================
+// Foydalanuvchilar
+// =====================
+model User {
+  id          String    @id @default(uuid())
+  telegramId  BigInt    @unique @map("telegram_id")
+  firstName   String    @map("first_name")
+  lastName    String?   @map("last_name")
+  username    String?
+  levelSystem String    @default("ielts") @map("level_system") // "ielts" yoki "cefr"
+  currentLevel String   @default("5.0") @map("current_level")  // IELTS: "5.0"-"9.0", CEFR: "A1"-"C2"
+  language    String    @default("uz") // "uz", "ru", "en"
+  timezone    String    @default("Asia/Tashkent")
+  isPremium   Boolean   @default(false) @map("is_premium")
+  testsToday  Int       @default(0) @map("tests_today")
+  lastTestDate DateTime? @map("last_test_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  submissions   Submission[]
+  progressStats ProgressStats?
+  usedTopics    UsedTopic[]
+
+  @@map("users")
+}
+
+// =====================
+// Kunlik mavzular
+// =====================
+model DailyTopic {
+  id            String    @id @default(uuid())
+  type          String    // "speaking" yoki "writing"
+  subtype       String    // speaking: "part1","part2","part3" | writing: "task1","task2"
+  levelSystem   String    @map("level_system") // "ielts" yoki "cefr"
+  level         String    @map("current_level") // "5.0"-"9.0" yoki "A1"-"C2"
+  topicText     String    @map("topic_text")
+  topicData     Json?     @map("topic_data") // JSON object
+  dateGenerated DateTime  @default(now()) @map("date_generated")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  submissions   Submission[]
+  usedByUsers   UsedTopic[]
+
+  @@index([type, levelSystem, level, dateGenerated])
+  @@map("topics")
+}
+
+
+// =====================
+// Test javoblari (submissions)
+// =====================
+model Submission {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  topicId     String?   @map("topic_id")
+  type        String    // "speaking" yoki "writing"
+  subtype     String?   // "part1","part2","part3","task1","task2"
+  content     String?   // yozma javob matni
+  audioUrl    String?   @map("audio_url") // ovozli javob fayl yo'li
+  transcript  String?   // STT natijasi
+  feedbackJson String?  @map("feedback_json") // JSON as String
+  bandScore   Float?    @map("band_score") // IELTS band score
+  cefrLevel   String?   @map("cefr_level") // CEFR daraja
+  status      String    @default("pending") // "pending","processing","completed","error"
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic DailyTopic? @relation(fields: [topicId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("submissions")
+}
+
+// =====================
+// Progress statistikasi
+// =====================
+model ProgressStats {
+  id              String    @id @default(uuid())
+  userId          String    @unique @map("user_id")
+  streak          Int       @default(0)
+  longestStreak   Int       @default(0) @map("longest_streak")
+  totalTests      Int       @default(0) @map("total_tests")
+  totalSpeaking   Int       @default(0) @map("total_speaking")
+  totalWriting    Int       @default(0) @map("total_writing")
+  avgSpeakingScore Float?   @map("avg_speaking_score")
+  avgWritingScore  Float?   @map("avg_writing_score")
+  lastTestDate    DateTime? @map("last_test_date")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("progress_stats")
+}
+
+// =====================
+// Ishlatilgan mavzular (takrorlanmaslik uchun)
+// =====================
+model UsedTopic {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  topicId  String   @map("topic_id")
+  usedAt   DateTime @default(now()) @map("used_at")
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic DailyTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@map("used_topics")
+}
