@@ -138,6 +138,12 @@ export default function ActiveTest() {
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Mavzu</h2>
         <p className="text-lg whitespace-pre-wrap">{topic.topicText}</p>
         
+        {topic.topicData?.image_url && (
+          <div className="mt-4 rounded-xl overflow-hidden border border-surface-600 shadow-md">
+            <img src={topic.topicData.image_url} alt="Task 1 Chart" className="w-full object-cover max-h-96" />
+          </div>
+        )}
+
         {topic.topicData?.instructions && (
           <div className="mt-4 p-3 bg-surface-800 rounded-lg border border-surface-600 text-sm text-gray-300">
             {topic.topicData.instructions}
