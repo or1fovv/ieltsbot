@@ -137,16 +137,25 @@ const createDemoSubmission = ({ type, subtype, content, audioUrl, transcript }) 
   return submission
 }
 
-// Request interceptor — har bir so'rovga telegram initData qo'shish
+// Request interceptor — har bir so'rovga telegram initData yoki web token qo'shish
 api.interceptors.request.use((config) => {
   const initData = localStorage.getItem('tg_init_data')
+  const webToken = localStorage.getItem('web_user_token')
   if (initData) {
     config.headers['x-telegram-init-data'] = initData
+  } else if (webToken) {
+    config.headers['x-web-user-id'] = webToken
   }
   return config
 }, (error) => {
   return Promise.reject(error)
 })
+
+// Veb orqali kirish (Username / Name)
+export const webLogin = async ({ identifier, name, levelSystem, currentLevel }) => {
+  const { data } = await api.post('/user/login', { identifier, name, levelSystem, currentLevel })
+  return data
+}
 
 // Barcha submission history'ni olish
 export const getHistory = async (page = 1) => {

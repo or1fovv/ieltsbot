@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Settings, Save, Check } from 'lucide-react'
+import { Settings, Save, Check, LogOut } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { updateSettings } from '../services/api'
 
 export default function Profile() {
-  const { user, updateUser } = useAuthStore()
+  const { user, updateUser, logout } = useAuthStore()
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   
@@ -140,6 +140,15 @@ export default function Profile() {
           </button>
         </div>
       </div>
+
+      {/* Logout button */}
+      <button
+        onClick={logout}
+        className="w-full p-3.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+      >
+        <LogOut size={18} />
+        <span>Chiqish (Logout)</span>
+      </button>
     </div>
   )
 }

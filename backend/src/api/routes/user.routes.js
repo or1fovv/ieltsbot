@@ -34,6 +34,66 @@ router.get('/', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) 
 });
 
 // =============================================
+// POST /api/user/login — Veb brauzer orqali tezkor kirish (Username / ID / Name)
+// =============================================
+router.post('/login', async (req, res) => {
+  try {
+    const { identifier, name, levelSystem, currentLevel } = req.body;
+
+    if (!identifier || identifier.trim().length === 0) {
+      return res.status(400).json({ error: 'Telegram username yoki ismingizni kiriting' });
+    }
+
+    const cleanInput = identifier.trim().replace('@', '');
+    const isNumeric = /^\d+$/.test(cleanInput);
+
+    let user = null;
+
+    if (isNumeric) {
+      user = await prisma.user.findUnique({
+        where: { telegramId: BigInt(cleanInput) },
+        include: { progressStats: true },
+      });
+    } else {
+      user = await prisma.user.findFirst({
+        where: { username: { equals: cleanInput, mode: 'insensitive' } },
+        include: { progressStats: true },
+      });
+    }
+
+    // Topilmasa, yangi akkount ochib berish
+    if (!user) {
+      const generatedTelegramId = isNumeric ? BigInt(cleanInput) : BigInt(Math.floor(100000000 + Math.random() * 900000000));
+      const displayName = name || cleanInput;
+
+      user = await prisma.user.create({
+        data: {
+          telegramId: generatedTelegramId,
+          firstName: displayName,
+          username: isNumeric ? null : cleanInput,
+          levelSystem: levelSystem || 'ielts',
+          currentLevel: currentLevel || '5.0',
+          language: 'uz',
+          progressStats: { create: {} },
+        },
+        include: { progressStats: true },
+      });
+    }
+
+    res.json({
+      token: user.id,
+      user: {
+        ...user,
+        telegramId: user.telegramId.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Web login error:', error);
+    res.status(500).json({ error: 'Veb orqali kirishda xatolik yuz berdi' });
+  }
+});
+
+// =============================================
 // POST /api/user/register — Ro'yxatdan o'tish / yangilash
 // =============================================
 router.post('/register', telegramAuthMiddleware, async (req, res) => {

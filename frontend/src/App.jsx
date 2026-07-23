@@ -13,6 +13,7 @@ import Results from './pages/Results'
 import Progress from './pages/Progress'
 import Profile from './pages/Profile'
 import History from './pages/History'
+import Login from './pages/Login'
 import Navbar from './components/Navbar'
 
 function App() {
@@ -45,26 +46,7 @@ function App() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
-        <div className="glass-card p-8 max-w-sm w-full">
-          <h2 className="text-2xl font-bold text-white mb-4">Xatolik</h2>
-          <p className="text-gray-300 mb-6">
-            Bot orqali kirish tasdiqlanmadi. Iltimos, Telegram bot orqali "Saytga o'tish" tugmasini bosing.
-          </p>
-          <button 
-            onClick={() => {
-              if (WebApp && typeof WebApp.close === 'function') {
-                WebApp.close();
-              }
-            }}
-            className="btn-gradient w-full"
-          >
-            Yopish
-          </button>
-        </div>
-      </div>
-    )
+    return <Login />
   }
 
   return (

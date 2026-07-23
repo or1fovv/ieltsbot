@@ -48,68 +48,96 @@ export function validateTelegramInitData(initData) {
 }
 
 /**
- * Express middleware — Telegram WebApp autentifikatsiya
+ * Express middleware — Telegram WebApp yoki Veb Autentifikatsiya
  */
 export function telegramAuthMiddleware(req, res, next) {
-  if (req.telegramUser) {
+  if (req.telegramUser || req.webUserId) {
     return next();
   }
 
+  // 1. Telegram WebApp initData header
   const initData = req.headers['x-telegram-init-data'];
-
-  if (!initData) {
-    return res.status(401).json({
-      error: 'Autentifikatsiya talab qilinadi',
-      message: 'Telegram WebApp initData topilmadi',
-    });
+  if (initData) {
+    const telegramUser = validateTelegramInitData(initData);
+    if (telegramUser) {
+      req.telegramUser = telegramUser;
+      return next();
+    }
   }
 
-  const telegramUser = validateTelegramInitData(initData);
-
-  if (!telegramUser) {
-    return res.status(401).json({
-      error: 'Noto\'g\'ri autentifikatsiya',
-      message: 'Telegram initData tekshiruvdan o\'tmadi',
-    });
+  // 2. Direct Web auth header (x-web-user-id yoki Authorization header)
+  const webUserId = req.headers['x-web-user-id'] || req.headers['authorization']?.replace('Bearer ', '');
+  if (webUserId) {
+    req.webUserId = webUserId;
+    return next();
   }
 
-  req.telegramUser = telegramUser;
-  next();
+  // 3. Autentifikatsiya topilmadi
+  return res.status(401).json({
+    error: 'Autentifikatsiya talab qilinadi',
+    message: 'Iltimos, Telegram Mini App yoki Veb orqali tizimga kiring',
+  });
 }
 
 /**
- * Telegram foydalanuvchisini DB'dan topish yoki yaratish
- * Middleware — telegramAuthMiddleware dan keyin ishlatiladi
+ * Foydalanuvchini DB'dan topish yoki yaratish
  */
 export async function resolveUserMiddleware(req, res, next) {
   try {
-    const tgUser = req.telegramUser;
-    if (!tgUser) {
-      return res.status(401).json({ error: 'Foydalanuvchi aniqlanmadi' });
-    }
+    let user = null;
 
-    let user = await prisma.user.findUnique({
-      where: { telegramId: BigInt(tgUser.id) },
-      include: { progressStats: true },
-    });
-
-    if (!user) {
-      // Yangi foydalanuvchi yaratish
-      user = await prisma.user.create({
-        data: {
-          telegramId: BigInt(tgUser.id),
-          firstName: tgUser.first_name || 'Foydalanuvchi',
-          lastName: tgUser.last_name || null,
-          username: tgUser.username || null,
-          progressStats: {
-            create: {},
-          },
-        },
+    // A) Telegram user
+    if (req.telegramUser) {
+      const tgUser = req.telegramUser;
+      user = await prisma.user.findUnique({
+        where: { telegramId: BigInt(tgUser.id) },
         include: { progressStats: true },
       });
+
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            telegramId: BigInt(tgUser.id),
+            firstName: tgUser.first_name || 'Foydalanuvchi',
+            lastName: tgUser.last_name || null,
+            username: tgUser.username || null,
+            progressStats: { create: {} },
+          },
+          include: { progressStats: true },
+        });
+      }
+    }
+    // B) Web user ID or Username
+    else if (req.webUserId) {
+      const webId = req.webUserId;
+
+      // Try finding by UUID id
+      if (webId.length > 20) {
+        user = await prisma.user.findUnique({
+          where: { id: webId },
+          include: { progressStats: true },
+        });
+      }
+
+      // If not found, try finding by username or numeric telegramId
+      if (!user) {
+        const cleanUsername = webId.replace('@', '');
+        const isNumeric = /^\d+$/.test(cleanUsername);
+
+        user = await prisma.user.findFirst({
+          where: isNumeric
+            ? { telegramId: BigInt(cleanUsername) }
+            : { username: { equals: cleanUsername, mode: 'insensitive' } },
+          include: { progressStats: true },
+        });
+      }
     }
 
-    // BigInt ni string ga o'girish (JSON serialization uchun)
+    if (!user) {
+      return res.status(401).json({ error: 'Foydalanuvchi topilmadi. Qayta ro\'yxatdan o\'ting.' });
+    }
+
+    // Format for request context
     req.user = {
       ...user,
       telegramId: user.telegramId.toString(),
@@ -123,17 +151,11 @@ export async function resolveUserMiddleware(req, res, next) {
 }
 
 /**
- * Dev mode middleware — development uchun auth skip
+ * Dev mode middleware
  */
 export function devAuthMiddleware(req, res, next) {
-  if (config.nodeEnv === 'development' && !req.headers['x-telegram-init-data']) {
-    // Dev modda test user
-    req.telegramUser = {
-      id: 123456789,
-      first_name: 'Test',
-      last_name: 'User',
-      username: 'testuser',
-    };
+  if (config.nodeEnv === 'development' && !req.headers['x-telegram-init-data'] && !req.headers['x-web-user-id'] && !req.headers['authorization']) {
+    req.webUserId = 'demo-user-dev';
   }
   next();
 }
