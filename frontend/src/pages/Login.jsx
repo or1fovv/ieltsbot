@@ -12,19 +12,22 @@ export default function Login() {
   const [error, setError] = useState('')
 
   const handleLogin = async (e) => {
-    e.preventDefault()
-    if (!identifier.trim()) {
+    if (e && e.preventDefault) e.preventDefault()
+    const inputVal = identifier.trim() || name.trim()
+
+    if (!inputVal) {
       setError('Iltimos, Telegram username yoki ismingizni kiriting')
       return
     }
 
     setError('')
     setLoading(true)
-    const result = await loginWeb({ identifier, name, levelSystem, currentLevel })
-    setLoading(false)
-
-    if (!result.success) {
-      setError(result.error || 'Kirishda xatolik yuz berdi')
+    try {
+      await loginWeb({ identifier: inputVal, name: inputVal, levelSystem, currentLevel })
+    } catch (err) {
+      loginDemo()
+    } finally {
+      setLoading(false)
     }
   }
 

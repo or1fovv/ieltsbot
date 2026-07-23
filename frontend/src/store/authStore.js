@@ -83,7 +83,7 @@ export const useAuthStore = create((set) => ({
 
     try {
       const res = await apiWebLogin({ identifier, name, levelSystem, currentLevel })
-      if (res && res.token && res.user) {
+      if (res && typeof res === 'object' && res.token && res.user) {
         localStorage.setItem('web_user_token', res.token)
         localStorage.removeItem('demo_mode')
         set({ user: res.user, token: res.token, isLoading: false })
