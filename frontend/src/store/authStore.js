@@ -21,7 +21,7 @@ const demoUser = {
   createdAt: new Date().toISOString(),
 }
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   user: null,
   token: null,
   isLoading: true,
@@ -50,21 +50,12 @@ export const useAuthStore = create((set) => ({
           set({ user: data, token: webToken, isLoading: false })
           return
         } catch {
-          // Ignore API error and try local profile fallback
+          // Xato bo'lsa tozalab tashlaymiz
+          localStorage.removeItem('web_user_token')
         }
       }
 
-      // 3. Local web profile saqlangan bo'lsa (Offline/Vercel fallback)
-      const localProfileStr = localStorage.getItem('web_user_profile')
-      if (localProfileStr) {
-        try {
-          const localUser = JSON.parse(localProfileStr)
-          set({ user: localUser, token: localUser.id, isLoading: false })
-          return
-        } catch {}
-      }
-
-      // 4. Demo rejim saqlangan bo'lsa
+      // 3. Demo rejim saqlangan bo'lsa
       if (localStorage.getItem('demo_mode') === '1' || isDevMock) {
         set({ user: demoUser, token: 'demo-token', isLoading: false })
         return
@@ -74,6 +65,33 @@ export const useAuthStore = create((set) => ({
     } catch (error) {
       console.error('Auth initialization error:', error)
       set({ user: null, token: null, isLoading: false })
+    }
+  },
+
+  loginGoogle: async (supabaseUser) => {
+    set({ isLoading: true })
+    try {
+      const email = supabaseUser.email
+      const name = supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || email.split('@')[0]
+      
+      // Backend ga Google user ma'lumotlarini yuborib auth token/user profilini olamiz
+      const res = await api.post('/user/login-google', {
+        email,
+        name,
+        avatarUrl: supabaseUser.user_metadata?.avatar_url,
+        supabaseId: supabaseUser.id
+      })
+
+      if (res.data && res.data.token && res.data.user) {
+        localStorage.setItem('web_user_token', res.data.token)
+        localStorage.removeItem('demo_mode')
+        set({ user: res.data.user, token: res.data.token, isLoading: false })
+        return { success: true }
+      }
+    } catch (error) {
+      console.error('Google login sync error:', error)
+      set({ isLoading: false })
+      throw error
     }
   },
 

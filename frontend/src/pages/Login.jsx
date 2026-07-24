@@ -1,15 +1,61 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LogIn, Sparkles, Send, UserCheck, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
+import { supabase } from '../services/supabaseClient'
 
 export default function Login() {
-  const { loginWeb, loginDemo } = useAuthStore()
+  const { loginWeb, loginDemo, loginGoogle } = useAuthStore()
   const [identifier, setIdentifier] = useState('')
   const [name, setName] = useState('')
   const [levelSystem, setLevelSystem] = useState('ielts')
   const [currentLevel, setCurrentLevel] = useState('6.0')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Supabase Auth holat o'zgarishini kuzatish (Google login qaytgandan keyin)
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        try {
+          await loginGoogle(session.user)
+        } catch (err) {
+          setError("Google login ma'lumotlarini backend bilan sinxronlashda xatolik!")
+        }
+      }
+    }
+    checkSession()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        try {
+          await loginGoogle(session.user)
+        } catch (err) {
+          setError("Google login ma'lumotlarini backend bilan sinxronlashda xatolik!")
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [loginGoogle])
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      })
+      if (error) throw error
+    } catch (err) {
+      console.error(err)
+      setError("Google tizimiga ulanishda xato: " + err.message)
+      setGoogleLoading(false)
+    }
+  }
 
   const handleLogin = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
@@ -129,6 +175,24 @@ export default function Login() {
 
         {/* Secondary Login Options */}
         <div className="space-y-2.5">
+          <button
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            type="button"
+            className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all text-sm shadow-md cursor-pointer"
+          >
+            {googleLoading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.54 0-6.4-2.86-6.4-6.4s2.86-6.4 6.4-6.4c1.648 0 3.13.626 4.27 1.648L21.2 4.675C18.89 2.503 15.8 1.2 12.24 1.2 6.033 1.2 1 6.233 1 12.4s5.033 11.2 11.24 11.2c5.6 0 10.4-4 10.4-11.2 0-.648-.06-1.286-.18-1.915H12.24z"/>
+                </svg>
+                <span>Google Account (Gmail) Orqali Kirish</span>
+              </>
+            )}
+          </button>
+
           <a
             href="https://t.me/ielts77_bot"
             target="_blank"

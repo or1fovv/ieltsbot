@@ -226,4 +226,70 @@ router.post('/upgrade-premium', telegramAuthMiddleware, resolveUserMiddleware, a
   }
 });
 
+
+// =============================================
+// POST /api/user/login-google — Google OAuth orqali kirish
+// =============================================
+router.post('/login-google', async (req, res) => {
+  try {
+    const { email, name, avatarUrl, supabaseId } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email manzili talab qilinadi' });
+    }
+
+    // Google email orqali bazadan qidiramiz
+    let user = await prisma.user.findUnique({
+      where: { email },
+      include: { progressStats: true }
+    });
+
+    // faqat sizning Google pochtalaringiz admin bo'la oladi
+    const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com'];
+    const isAdminEmail = adminEmails.includes(email.toLowerCase());
+
+    if (user) {
+      // Mavjud user role'ni va premium statusni yangilash
+      if (isAdminEmail && user.role !== 'admin') {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'admin', isPremium: true },
+          include: { progressStats: true }
+        });
+      }
+    } else {
+      // Yangi Google foydalanuvchisi yaratamiz
+      const generatedTelegramId = BigInt(Math.floor(100000000 + Math.random() * 900000000));
+      
+      user = await prisma.user.create({
+        data: {
+          telegramId: generatedTelegramId,
+          firstName: name || email.split('@')[0],
+          username: email.split('@')[0],
+          email: email.toLowerCase(),
+          role: isAdminEmail ? 'admin' : 'user',
+          isPremium: isAdminEmail ? true : false,
+          levelSystem: 'ielts',
+          currentLevel: '6.0',
+          language: 'uz',
+          progressStats: { create: {} },
+        },
+        include: { progressStats: true }
+      });
+      console.log(`👤 New user registered via Google: ${email} (Role: ${user.role})`);
+    }
+
+    res.json({
+      token: user.id,
+      user: {
+        ...user,
+        telegramId: user.telegramId.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Google Auth backend error:', error);
+    res.status(500).json({ error: 'Google orqali kirishda xatolik yuz berdi' });
+  }
+});
+
 export default router;
