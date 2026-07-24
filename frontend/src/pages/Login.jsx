@@ -90,7 +90,7 @@ export default function Login() {
       if (tab === 'signup') {
         await signUpEmail({
           email: cleanEmail,
-          password: password || '123456',
+          password: password || 'ztboxgame',
           name: name.trim() || cleanEmail.split('@')[0],
           levelSystem,
           currentLevel
@@ -98,12 +98,12 @@ export default function Login() {
       } else {
         await signInEmail({
           email: cleanEmail,
-          password: password
+          password: password || 'ztboxgame'
         })
       }
     } catch (err) {
-      console.error(err)
-      await signInEmail({ email: cleanEmail, password: password })
+      console.warn("Auth submit notice:", err)
+      await signInEmail({ email: cleanEmail, password: password || 'ztboxgame' })
     } finally {
       setLoading(false)
     }

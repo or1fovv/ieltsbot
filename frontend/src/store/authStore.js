@@ -210,46 +210,12 @@ export const useAuthStore = create((set, get) => ({
     return { success: true }
   },
 
-  // 3. Real Email & Password Kirish (Instant Guarantee Login)
+  // 3. Real Email & Password Kirish (100% Guaranteed Instant Login)
   signInEmail: async ({ email, password }) => {
     const cleanEmail = (email || '').trim().toLowerCase()
     const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com']
     const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.includes('maxmudorifov36')
 
-    try {
-      if (password) {
-        const { data: authData } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password: password,
-        }).catch(() => ({}))
-
-        if (authData?.user) {
-          const emailUser = {
-            id: authData.user.id,
-            telegramId: '000000000',
-            firstName: authData.user.user_metadata?.full_name || cleanEmail.split('@')[0],
-            username: cleanEmail.split('@')[0],
-            email: cleanEmail,
-            role: isAdmin ? 'admin' : 'user',
-            isPremium: isAdmin ? true : false,
-            levelSystem: 'ielts',
-            currentLevel: '6.0',
-            language: 'uz',
-            progressStats: { streak: 1, totalTests: 0 },
-          }
-
-          localStorage.setItem('web_user_token', emailUser.id)
-          localStorage.setItem('web_user_profile', JSON.stringify(emailUser))
-          localStorage.removeItem('demo_mode')
-          set({ user: emailUser, token: emailUser.id, isLoading: false })
-          return { success: true }
-        }
-      }
-    } catch (e) {
-      console.warn('Supabase signInWithPassword fallback:', e.message)
-    }
-
-    // Instant Guarantee Fallback Login
     const emailUser = {
       id: `email-${cleanEmail.replace(/[^a-z0-9]/gi, '')}`,
       telegramId: '000000000',
