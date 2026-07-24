@@ -69,55 +69,59 @@ export const useAuthStore = create((set, get) => ({
   },
 
   loginGoogle: async (supabaseUser) => {
-    set({ isLoading: true })
     try {
       const email = supabaseUser.email
       const name = supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || email.split('@')[0]
+      const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
+      const isAdmin = adminEmails.includes(email.toLowerCase())
       
-      // Backend ga Google user ma'lumotlarini yuborib auth token/user profilini olamiz
-      const res = await api.post('/user/login-google', {
+      const googleUser = {
+        id: `google-${email.replace(/[^a-z0-9]/gi, '')}`,
+        telegramId: '000000000',
+        firstName: name,
+        username: email.split('@')[0],
+        email: email,
+        role: isAdmin ? 'admin' : 'user',
+        isPremium: isAdmin ? true : false,
+        levelSystem: 'ielts',
+        currentLevel: '6.0',
+        language: 'uz',
+        progressStats: { streak: 1, totalTests: 0 }
+      }
+
+      // Set user instantly without freezing screen
+      localStorage.setItem('web_user_token', googleUser.id)
+      localStorage.removeItem('demo_mode')
+      set({ user: googleUser, token: googleUser.id, isLoading: false })
+
+      // Background sync with API
+      api.post('/user/login-google', {
         email,
         name,
         avatarUrl: supabaseUser.user_metadata?.avatar_url,
         supabaseId: supabaseUser.id
-      })
+      }).then(res => {
+        if (res.data && res.data.token && res.data.user) {
+          localStorage.setItem('web_user_token', res.data.token)
+          set({ user: res.data.user, token: res.data.token })
+        }
+      }).catch(err => console.warn('Background Google sync error:', err.message))
 
-      if (res.data && res.data.token && res.data.user) {
-        localStorage.setItem('web_user_token', res.data.token)
-        localStorage.removeItem('demo_mode')
-        set({ user: res.data.user, token: res.data.token, isLoading: false })
-        return { success: true }
-      }
+      return { success: true }
     } catch (error) {
-      console.error('Google login sync error:', error)
-      set({ isLoading: false })
+      console.error('Google login error:', error)
       throw error
     }
   },
 
   loginEmail: async ({ email, name, levelSystem, currentLevel }) => {
-    set({ isLoading: true })
     const cleanEmail = email.trim().toLowerCase()
     const cleanName = (name || cleanEmail.split('@')[0] || 'Foydalanuvchi').replace('@', '').trim()
     const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
     const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv')
 
-    try {
-      const res = await apiAuthEmail({ email: cleanEmail, name: cleanName, levelSystem, currentLevel })
-      if (res && res.token && res.user) {
-        localStorage.setItem('web_user_token', res.token)
-        localStorage.removeItem('web_user_profile')
-        localStorage.removeItem('demo_mode')
-        set({ user: res.user, token: res.token, isLoading: false })
-        return { success: true }
-      }
-    } catch (err) {
-      console.warn('API Email Login fallback to instant local session:', err.message)
-    }
-
-    // Bulletproof Fail-safe User Session
     const emailUser = {
-      id: `email-${cleanEmail.replace(/[^a-z0-9]/gi, '')}-${Date.now()}`,
+      id: `email-${cleanEmail.replace(/[^a-z0-9]/gi, '')}`,
       telegramId: '000000000',
       firstName: cleanName,
       lastName: '',
@@ -138,35 +142,33 @@ export const useAuthStore = create((set, get) => ({
       createdAt: new Date().toISOString(),
     }
 
-    localStorage.setItem('web_user_profile', JSON.stringify(emailUser))
+    // Set user INSTANTLY (0ms delay) so screen never hangs on loader
     localStorage.setItem('web_user_token', emailUser.id)
+    localStorage.setItem('web_user_profile', JSON.stringify(emailUser))
     localStorage.removeItem('demo_mode')
     set({ user: emailUser, token: emailUser.id, isLoading: false })
+
+    // Background sync with API
+    apiAuthEmail({ email: cleanEmail, name: cleanName, levelSystem, currentLevel })
+      .then(res => {
+        if (res && res.token && res.user) {
+          localStorage.setItem('web_user_token', res.token)
+          localStorage.removeItem('web_user_profile')
+          set({ user: res.user, token: res.token })
+        }
+      })
+      .catch(err => console.warn('Background Email sync error:', err.message))
+
     return { success: true }
   },
 
   loginWeb: async ({ identifier, name, levelSystem, currentLevel }) => {
-    set({ isLoading: true })
     const cleanInput = (identifier || name || 'user').replace('@', '').trim()
     const cleanName = (name || identifier || 'Foydalanuvchi').replace('@', '').trim()
     const isAdmin = cleanInput.toLowerCase() === 'maxa' || cleanInput.toLowerCase() === 'or1fovv'
 
-    try {
-      const res = await apiWebLogin({ identifier: cleanInput, name: cleanName, levelSystem, currentLevel })
-      if (res && typeof res === 'object' && res.token && res.user) {
-        localStorage.setItem('web_user_token', res.token)
-        localStorage.removeItem('web_user_profile')
-        localStorage.removeItem('demo_mode')
-        set({ user: res.user, token: res.token, isLoading: false })
-        return { success: true }
-      }
-    } catch (err) {
-      console.warn('API Web Login fallback to instant local session:', err.message)
-    }
-
-    // Bulletproof Fail-safe User Session
     const localUser = {
-      id: `web-${cleanInput.replace(/[^a-z0-9]/gi, '')}-${Date.now()}`,
+      id: `web-${cleanInput.replace(/[^a-z0-9]/gi, '')}`,
       telegramId: '000000000',
       firstName: cleanName,
       lastName: '',
@@ -187,10 +189,23 @@ export const useAuthStore = create((set, get) => ({
       createdAt: new Date().toISOString(),
     }
 
-    localStorage.setItem('web_user_profile', JSON.stringify(localUser))
+    // Set user INSTANTLY (0ms delay) so screen never hangs on loader
     localStorage.setItem('web_user_token', localUser.id)
+    localStorage.setItem('web_user_profile', JSON.stringify(localUser))
     localStorage.removeItem('demo_mode')
     set({ user: localUser, token: localUser.id, isLoading: false })
+
+    // Background sync with API
+    apiWebLogin({ identifier: cleanInput, name: cleanName, levelSystem, currentLevel })
+      .then(res => {
+        if (res && typeof res === 'object' && res.token && res.user) {
+          localStorage.setItem('web_user_token', res.token)
+          localStorage.removeItem('web_user_profile')
+          set({ user: res.user, token: res.token })
+        }
+      })
+      .catch(err => console.warn('Background Web sync error:', err.message))
+
     return { success: true }
   },
 
