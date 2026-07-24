@@ -178,6 +178,150 @@ router.put('/settings', telegramAuthMiddleware, resolveUserMiddleware, async (re
 });
 
 // =============================================
+// POST /api/user/auth-email — Gmail / Email orqali kirish / ro'yxatdan o'tish
+// =============================================
+router.post('/auth-email', async (req, res) => {
+  try {
+    const { email, name, levelSystem, currentLevel } = req.body;
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Iltimos, to\'g\'ri Gmail / Email manzilini kiriting' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com'];
+    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv');
+
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { username: cleanEmail.split('@')[0] }
+        ]
+      },
+      include: { progressStats: true },
+    });
+
+    if (user) {
+      // Ensure admin email has role='admin'
+      if (isAdmin && user.role !== 'admin') {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'admin', isPremium: true },
+          include: { progressStats: true },
+        });
+      }
+    } else {
+      // Create new user with email
+      const generatedTelegramId = BigInt(Math.floor(100000000 + Math.random() * 900000000));
+      const displayName = name || cleanEmail.split('@')[0];
+
+      user = await prisma.user.create({
+        data: {
+          telegramId: generatedTelegramId,
+          firstName: displayName,
+          username: cleanEmail.split('@')[0],
+          email: cleanEmail,
+          role: isAdmin ? 'admin' : 'user',
+          isPremium: isAdmin ? true : false,
+          levelSystem: levelSystem || 'ielts',
+          currentLevel: currentLevel || '5.0',
+          language: 'uz',
+          progressStats: { create: {} },
+        },
+        include: { progressStats: true },
+      });
+      console.log(`✉️ New user registered via Email: ${cleanEmail} (Role: ${user.role})`);
+    }
+
+    res.json({
+      token: user.id,
+      user: {
+        ...user,
+        telegramId: user.telegramId.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Email Auth Error:', error);
+    res.status(500).json({ error: 'Email orqali kirishda xatolik yuz berdi: ' + error.message });
+  }
+});
+
+// =============================================
+// GET /api/user/admin/users — Admin: Barcha foydalanuvchilar ro'yxati
+// =============================================
+router.get('/admin/users', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin ruxsati kerak' });
+    }
+
+    const users = await prisma.user.findMany({
+      include: { progressStats: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const formatted = users.map(u => ({
+      ...u,
+      telegramId: u.telegramId.toString(),
+    }));
+
+    res.json({ users: formatted });
+  } catch (error) {
+    console.error('Get admin users error:', error);
+    res.status(500).json({ error: 'Foydalanuvchilarni olishda xato' });
+  }
+});
+
+// =============================================
+// POST /api/user/admin/user-action — Admin: Foydalanuvchini boshqarish (Premium, Limit, Delete, Role)
+// =============================================
+router.post('/admin/user-action', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin ruxsati kerak' });
+    }
+
+    const { targetUserId, action, value } = req.body;
+    if (!targetUserId || !action) {
+      return res.status(400).json({ error: 'targetUserId va action parametrlari kerak' });
+    }
+
+    let updatedUser = null;
+
+    if (action === 'toggle_premium') {
+      updatedUser = await prisma.user.update({
+        where: { id: targetUserId },
+        data: { isPremium: value },
+      });
+    } else if (action === 'reset_limit') {
+      updatedUser = await prisma.user.update({
+        where: { id: targetUserId },
+        data: { testsToday: 0 },
+      });
+    } else if (action === 'set_role') {
+      updatedUser = await prisma.user.update({
+        where: { id: targetUserId },
+        data: { role: value },
+      });
+    } else if (action === 'delete') {
+      await prisma.user.delete({
+        where: { id: targetUserId },
+      });
+      return res.json({ success: true, message: 'Foydalanuvchi o\'chirildi' });
+    }
+
+    res.json({
+      success: true,
+      user: updatedUser ? { ...updatedUser, telegramId: updatedUser.telegramId.toString() } : null,
+    });
+  } catch (error) {
+    console.error('Admin action error:', error);
+    res.status(500).json({ error: 'Amalni bajarishda xato: ' + error.message });
+  }
+});
+
+// =============================================
 // POST /api/user/reset-limit — Admin orqali joriy limitni nollash (testlash uchun)
 // =============================================
 router.post('/reset-limit', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) => {
@@ -226,7 +370,6 @@ router.post('/upgrade-premium', telegramAuthMiddleware, resolveUserMiddleware, a
   }
 });
 
-
 // =============================================
 // POST /api/user/login-google — Google OAuth orqali kirish
 // =============================================
@@ -245,7 +388,7 @@ router.post('/login-google', async (req, res) => {
     });
 
     // faqat sizning Google pochtalaringiz admin bo'la oladi
-    const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com'];
+    const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com'];
     const isAdminEmail = adminEmails.includes(email.toLowerCase());
 
     if (user) {

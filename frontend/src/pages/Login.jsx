@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { LogIn, Sparkles, Send, UserCheck, ShieldCheck } from 'lucide-react'
+import { LogIn, Sparkles, Send, Mail, User, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { supabase } from '../services/supabaseClient'
 
 export default function Login() {
-  const { loginWeb, loginDemo, loginGoogle } = useAuthStore()
+  const { loginEmail, loginWeb, loginDemo, loginGoogle } = useAuthStore()
+  
+  const [authMode, setAuthMode] = useState('email') // 'email' | 'username'
+  const [email, setEmail] = useState('')
   const [identifier, setIdentifier] = useState('')
   const [name, setName] = useState('')
   const [levelSystem, setLevelSystem] = useState('ielts')
@@ -57,24 +60,40 @@ export default function Login() {
     }
   }
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
-    const inputVal = identifier.trim() || name.trim()
-
-    if (!inputVal) {
-      setError('Iltimos, Telegram username yoki ismingizni kiriting')
-      return
-    }
-
     setError('')
     setLoading(true)
+
     try {
-      const res = await loginWeb({ identifier: inputVal, name: inputVal, levelSystem, currentLevel })
-      if (res && res.success) {
-        // Successful login
+      if (authMode === 'email') {
+        if (!email.trim() || !email.includes('@')) {
+          setError('Iltimos, to\'g\'ri Gmail / Email manzilini kiriting!')
+          setLoading(false)
+          return
+        }
+        await loginEmail({
+          email: email.trim(),
+          name: name.trim() || email.split('@')[0],
+          levelSystem,
+          currentLevel
+        })
+      } else {
+        const inputVal = identifier.trim() || name.trim()
+        if (!inputVal) {
+          setError('Iltimos, Telegram username yoki ismingizni kiriting!')
+          setLoading(false)
+          return
+        }
+        await loginWeb({
+          identifier: inputVal,
+          name: inputVal,
+          levelSystem,
+          currentLevel
+        })
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Server bilan bog\'lanishda xato. Iltimos keyinroq urinib ko\'ring.')
+      setError(err.response?.data?.error || 'Server bilan bog\'lanishda xato yuz berdi.')
     } finally {
       setLoading(false)
     }
@@ -90,7 +109,35 @@ export default function Login() {
             🎓
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">IELTS & CEFR AI Platform</h1>
-          <p className="text-sm text-gray-300">Telegram Bot & Web Mini App bilan integratsiyalashgan AI Platforma</p>
+          <p className="text-sm text-gray-300">Gmail va Telegram bilan bog'langan AI Platforma</p>
+        </div>
+
+        {/* Auth Mode Switcher */}
+        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+          <button
+            type="button"
+            onClick={() => { setAuthMode('email'); setError(''); }}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              authMode === 'email'
+                ? 'bg-primary-500 text-white shadow-md'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Mail size={15} />
+            <span>Gmail / Email</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setAuthMode('username'); setError(''); }}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              authMode === 'username'
+                ? 'bg-primary-500 text-white shadow-md'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <User size={15} />
+            <span>Username / Name</span>
+          </button>
         </div>
 
         {/* Error Alert */}
@@ -100,23 +147,52 @@ export default function Login() {
           </div>
         )}
 
-        {/* Login Form */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1">
-              Telegram Username yoki Ismingiz <span className="text-primary-400">*</span>
-            </label>
-            <div className="relative">
+        {/* Main Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {authMode === 'email' ? (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Gmail / Email Manzilingiz <span className="text-primary-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="masalan: foydalanuvchi@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-all text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Ismingiz (ixtiyoriy)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ismingizni kiriting"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-all text-sm"
+                />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
+                Telegram Username yoki Ismingiz <span className="text-primary-400">*</span>
+              </label>
               <input
                 type="text"
                 placeholder="@username yoki Ismingiz"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-all text-sm"
                 required
               />
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-gray-300 mb-1">
@@ -153,14 +229,14 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full btn-gradient py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all"
+            className="w-full btn-gradient py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all text-sm cursor-pointer"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             ) : (
               <>
                 <LogIn size={18} />
-                <span>Saytga Kirish</span>
+                <span>{authMode === 'email' ? "Gmail Orqali Kirish / Ro'yxatdan O'tish" : "Saytga Kirish"}</span>
               </>
             )}
           </button>
@@ -179,7 +255,7 @@ export default function Login() {
             onClick={handleGoogleLogin}
             disabled={googleLoading}
             type="button"
-            className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all text-sm shadow-md cursor-pointer"
+            className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all text-sm shadow-md cursor-pointer"
           >
             {googleLoading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -188,7 +264,7 @@ export default function Login() {
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.54 0-6.4-2.86-6.4-6.4s2.86-6.4 6.4-6.4c1.648 0 3.13.626 4.27 1.648L21.2 4.675C18.89 2.503 15.8 1.2 12.24 1.2 6.033 1.2 1 6.233 1 12.4s5.033 11.2 11.24 11.2c5.6 0 10.4-4 10.4-11.2 0-.648-.06-1.286-.18-1.915H12.24z"/>
                 </svg>
-                <span>Google Account (Gmail) Orqali Kirish</span>
+                <span>Google Account bilan Tezkor Kirish</span>
               </>
             )}
           </button>

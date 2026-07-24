@@ -347,6 +347,24 @@ export const submitSpeaking = async (topicId, audioBlob, subtype) => {
 }
 
 
+// Email/Gmail orqali kirish / ro'yxatdan o'tish
+export const authEmail = async ({ email, name, levelSystem, currentLevel }) => {
+  const { data } = await api.post('/user/auth-email', { email, name, levelSystem, currentLevel })
+  return data
+}
+
+// Admin: Barcha foydalanuvchilar ro'yxati
+export const getAdminUsers = async () => {
+  const { data } = await api.get('/user/admin/users')
+  return data
+}
+
+// Admin: Foydalanuvchi ustida amal bajarish (premium, limit, role, delete)
+export const performAdminUserAction = async ({ targetUserId, action, value }) => {
+  const { data } = await api.post('/user/admin/user-action', { targetUserId, action, value })
+  return data
+}
+
 // Limitni nollash (Admin)
 export const resetLimit = async () => {
   const { data } = await api.post('/user/reset-limit')

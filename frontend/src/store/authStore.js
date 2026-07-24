@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import api, { webLogin as apiWebLogin } from '../services/api'
+import api, { webLogin as apiWebLogin, authEmail as apiAuthEmail } from '../services/api'
 
 const demoUser = {
   id: 'demo-user-guest',
@@ -92,6 +92,24 @@ export const useAuthStore = create((set, get) => ({
       console.error('Google login sync error:', error)
       set({ isLoading: false })
       throw error
+    }
+  },
+
+  loginEmail: async ({ email, name, levelSystem, currentLevel }) => {
+    set({ isLoading: true })
+    try {
+      const res = await apiAuthEmail({ email, name, levelSystem, currentLevel })
+      if (res && res.token && res.user) {
+        localStorage.setItem('web_user_token', res.token)
+        localStorage.removeItem('web_user_profile')
+        localStorage.removeItem('demo_mode')
+        set({ user: res.user, token: res.token, isLoading: false })
+        return { success: true }
+      }
+    } catch (err) {
+      console.error('Email Login Error:', err.message)
+      set({ isLoading: false })
+      throw err
     }
   },
 
