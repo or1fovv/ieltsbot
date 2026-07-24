@@ -27,8 +27,8 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
 
   // URLs
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-  webAppUrl: process.env.WEB_APP_URL || 'http://localhost:5173',
+  frontendUrl: process.env.FRONTEND_URL || 'https://ieltsbot-bay.vercel.app',
+  webAppUrl: process.env.WEB_APP_URL || 'https://ieltsbot-bay.vercel.app',
 
   // Limits
   freeTestsPerDay: 3,

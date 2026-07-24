@@ -193,7 +193,8 @@ router.post('/speaking', telegramAuthMiddleware, resolveUserMiddleware, upload.s
           `❌ **Xatolar va tuzatishlar:**\n${feedback.errors?.map(e => `• original: *${e.original}*\n  tuzatish: *${e.correction}*\n  izoh: ${e.explanation}`).join('\n') || 'N/A'}\n\n` +
           `💡 **Tavsiyalar:**\n${feedback.recommendations?.map(r => `• ${r}`).join('\n') || 'N/A'}`;
 
-        await bot.telegram.sendMessage(user.telegramId, feedbackText, { parse_mode: 'Markdown' });
+        await bot.telegram.sendMessage(user.telegramId, feedbackText, { parse_mode: 'Markdown' })
+          .catch(() => bot.telegram.sendMessage(user.telegramId, feedbackText.replace(/[*_]/g, '')));
       } catch (tgError) {
         console.error('Failed to send voice or feedback to Telegram bot:', tgError.message);
       }
