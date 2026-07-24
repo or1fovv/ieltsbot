@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
-import { LogIn, Sparkles, Send, Mail, User, ShieldCheck, X } from 'lucide-react'
+import { LogIn, Sparkles, Send, Mail, ShieldCheck, X } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { supabase } from '../services/supabaseClient'
 
 export default function Login() {
-  const { loginEmail, loginWeb, loginDemo, loginGoogle } = useAuthStore()
+  const { loginEmail, loginDemo, loginGoogle } = useAuthStore()
   
-  const [authMode, setAuthMode] = useState('email') // 'email' | 'username'
-  const [email, setEmail] = useState('')
-  const [identifier, setIdentifier] = useState('')
+  const [emailOrUsername, setEmailOrUsername] = useState('')
   const [name, setName] = useState('')
   const [levelSystem, setLevelSystem] = useState('ielts')
   const [currentLevel, setCurrentLevel] = useState('6.0')
@@ -36,22 +34,25 @@ export default function Login() {
   }, [loginGoogle])
 
   const handleGoogleLogin = async () => {
-    // Open Quick Gmail modal to prevent 400 Unsupported provider redirect error on Supabase
     setShowGmailModal(true)
   }
 
   const handleQuickGmailSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
-    if (!quickGmail.trim() || !quickGmail.includes('@')) {
-      alert("Iltimos, to'g'ri Gmail manzilingizni kiriting! (masalan: orifovdev@gmail.com)")
+    let inputVal = quickGmail.trim().toLowerCase()
+    if (!inputVal) {
+      alert("Iltimos, Gmail manzilingizni yozing!")
       return
+    }
+    if (!inputVal.includes('@')) {
+      inputVal = `${inputVal}@gmail.com`
     }
 
     try {
       setGoogleLoading(true)
       await loginEmail({
-        email: quickGmail.trim().toLowerCase(),
-        name: quickGmail.split('@')[0],
+        email: inputVal,
+        name: inputVal.split('@')[0],
         levelSystem,
         currentLevel
       })
@@ -68,33 +69,25 @@ export default function Login() {
     setError('')
     setLoading(true)
 
+    let inputVal = emailOrUsername.trim().toLowerCase()
+    if (!inputVal) {
+      setError('Iltimos, Gmail pochtangizni yoki ismingizni kiriting!')
+      setLoading(false)
+      return
+    }
+
+    // Auto-append @gmail.com if no @ was provided
+    if (!inputVal.includes('@')) {
+      inputVal = `${inputVal}@gmail.com`
+    }
+
     try {
-      if (authMode === 'email') {
-        if (!email.trim() || !email.includes('@')) {
-          setError('Iltimos, to\'g\'ri Gmail / Email manzilini kiriting!')
-          setLoading(false)
-          return
-        }
-        await loginEmail({
-          email: email.trim().toLowerCase(),
-          name: name.trim() || email.split('@')[0],
-          levelSystem,
-          currentLevel
-        })
-      } else {
-        const inputVal = identifier.trim() || name.trim()
-        if (!inputVal) {
-          setError('Iltimos, Telegram username yoki ismingizni kiriting!')
-          setLoading(false)
-          return
-        }
-        await loginWeb({
-          identifier: inputVal,
-          name: inputVal,
-          levelSystem,
-          currentLevel
-        })
-      }
+      await loginEmail({
+        email: inputVal,
+        name: name.trim() || inputVal.split('@')[0],
+        levelSystem,
+        currentLevel
+      })
     } catch (err) {
       setError(err.response?.data?.error || 'Server bilan bog\'lanishda xato yuz berdi.')
     } finally {
@@ -112,35 +105,7 @@ export default function Login() {
             🎓
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">IELTS & CEFR AI Platform</h1>
-          <p className="text-sm text-gray-300">Gmail va Telegram bilan bog'langan AI Platforma</p>
-        </div>
-
-        {/* Auth Mode Switcher */}
-        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-          <button
-            type="button"
-            onClick={() => { setAuthMode('email'); setError(''); }}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              authMode === 'email'
-                ? 'bg-primary-500 text-white shadow-md'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Mail size={15} />
-            <span>Gmail / Email</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => { setAuthMode('username'); setError(''); }}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              authMode === 'username'
-                ? 'bg-primary-500 text-white shadow-md'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <User size={15} />
-            <span>Username / Name</span>
-          </button>
+          <p className="text-sm text-gray-300">Gmail & Telegram AI Sinov Tizimi</p>
         </div>
 
         {/* Error Alert */}
@@ -152,50 +117,32 @@ export default function Login() {
 
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {authMode === 'email' ? (
-            <>
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Gmail / Email Manzilingiz <span className="text-primary-400">*</span>
-                </label>
-                <input
-                  type="email"
-                  placeholder="masalan: foydalanuvchi@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-all text-sm"
-                  required
-                />
-              </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-300 mb-1">
+              Gmail Manzilingiz yoki Username <span className="text-primary-400">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="masalan: maxmudorifov36@gmail.com yoki maxa"
+              value={emailOrUsername}
+              onChange={(e) => setEmailOrUsername(e.target.value)}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-all text-sm"
+              required
+            />
+          </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Ismingiz (ixtiyoriy)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ismingizni kiriting"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-all text-sm"
-                />
-              </div>
-            </>
-          ) : (
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">
-                Telegram Username yoki Ismingiz <span className="text-primary-400">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="@username yoki Ismingiz"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-all text-sm"
-                required
-              />
-            </div>
-          )}
+          <div>
+            <label className="block text-xs font-semibold text-gray-300 mb-1">
+              Ismingiz (ixtiyoriy)
+            </label>
+            <input
+              type="text"
+              placeholder="Ismingizni kiriting"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-all text-sm"
+            />
+          </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-300 mb-1">
@@ -239,7 +186,7 @@ export default function Login() {
             ) : (
               <>
                 <LogIn size={18} />
-                <span>{authMode === 'email' ? "Gmail Orqali Kirish / Ro'yxatdan O'tish" : "Saytga Kirish"}</span>
+                <span>Saytga Kirish (Gmail / Username)</span>
               </>
             )}
           </button>
@@ -263,7 +210,7 @@ export default function Login() {
             <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
               <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.54 0-6.4-2.86-6.4-6.4s2.86-6.4 6.4-6.4c1.648 0 3.13.626 4.27 1.648L21.2 4.675C18.89 2.503 15.8 1.2 12.24 1.2 6.033 1.2 1 6.233 1 12.4s5.033 11.2 11.24 11.2c5.6 0 10.4-4 10.4-11.2 0-.648-.06-1.286-.18-1.915H12.24z"/>
             </svg>
-            <span>Google Account (Gmail) Bilan Kirish</span>
+            <span>Google Account (Gmail) Tezkor Kirish</span>
           </button>
 
           <a
@@ -300,7 +247,7 @@ export default function Login() {
           <div className="glass-card p-6 max-w-sm w-full space-y-4 border border-white/20 relative shadow-2xl">
             <button
               onClick={() => setShowGmailModal(false)}
-              className="absolute right-4 top-4 text-gray-400 hover:text-white p-1 rounded-lg"
+              className="absolute right-4 top-4 text-gray-400 hover:text-white p-1 rounded-lg cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -316,8 +263,8 @@ export default function Login() {
             <form onSubmit={handleQuickGmailSubmit} className="space-y-4">
               <div>
                 <input
-                  type="email"
-                  placeholder="masalan: orifovdev@gmail.com"
+                  type="text"
+                  placeholder="masalan: maxmudorifov36@gmail.com yoki maxa"
                   value={quickGmail}
                   onChange={(e) => setQuickGmail(e.target.value)}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-red-500 text-sm"

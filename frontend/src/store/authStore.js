@@ -115,7 +115,10 @@ export const useAuthStore = create((set, get) => ({
   },
 
   loginEmail: async ({ email, name, levelSystem, currentLevel }) => {
-    const cleanEmail = email.trim().toLowerCase()
+    let cleanEmail = (email || '').trim().toLowerCase()
+    if (!cleanEmail.includes('@')) {
+      cleanEmail = `${cleanEmail}@gmail.com`
+    }
     const cleanName = (name || cleanEmail.split('@')[0] || 'Foydalanuvchi').replace('@', '').trim()
     const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
     const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv') || cleanEmail.includes('maxmudorifov36')
