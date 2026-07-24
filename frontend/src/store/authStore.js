@@ -242,3 +242,10 @@ export const useAuthStore = create((set, get) => ({
     })
   },
 }))
+
+// Google OAuth redirect avtomatik tutib olish
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+    useAuthStore.getState().loginGoogle(session.user)
+  }
+})
