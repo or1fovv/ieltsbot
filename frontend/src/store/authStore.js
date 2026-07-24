@@ -31,7 +31,14 @@ export const useAuthStore = create((set, get) => ({
     try {
       set({ isLoading: true })
       
-      // 1. Telegram initData bo'lsa
+      // 1. Supabase Auth session tekshirish (Google OAuth birinchi o'rinda)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        await get().loginGoogle(session.user)
+        return
+      }
+
+      // 2. Telegram initData bo'lsa
       if (initData) {
         localStorage.setItem('tg_init_data', initData)
         try {
@@ -41,13 +48,6 @@ export const useAuthStore = create((set, get) => ({
         } catch (e) {
           console.warn('Telegram user fetch error:', e.message)
         }
-      }
-
-      // 2. Supabase Auth session tekshirish
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        await get().loginGoogle(session.user)
-        return
       }
 
       // 3. Veb login token saqlangan bo'lsa (API call)
@@ -83,7 +83,7 @@ export const useAuthStore = create((set, get) => ({
   // 1. Real Google OAuth login (Supabase verified session)
   loginGoogle: async (supabaseUser) => {
     try {
-      const email = supabaseUser.email.toLowerCase()
+      const email = (supabaseUser.email || '').toLowerCase()
       const name = supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || email.split('@')[0]
       const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
       const isAdmin = adminEmails.includes(email) || email.includes('maxmudorifov36')
@@ -92,7 +92,7 @@ export const useAuthStore = create((set, get) => ({
         id: supabaseUser.id || `google-${email.replace(/[^a-z0-9]/gi, '')}`,
         telegramId: '000000000',
         firstName: name,
-        username: email.split('@')[0],
+        username: email.split('@')[0] || 'admin',
         email: email,
         role: isAdmin ? 'admin' : 'user',
         isPremium: isAdmin ? true : false,
@@ -115,8 +115,14 @@ export const useAuthStore = create((set, get) => ({
         supabaseId: supabaseUser.id
       }).then(res => {
         if (res.data && res.data.token && res.data.user) {
+          const backendUser = {
+            ...res.data.user,
+            role: isAdmin ? 'admin' : res.data.user.role,
+            isPremium: isAdmin ? true : res.data.user.isPremium
+          }
           localStorage.setItem('web_user_token', res.data.token)
-          set({ user: res.data.user, token: res.data.token })
+          localStorage.setItem('web_user_profile', JSON.stringify(backendUser))
+          set({ user: backendUser, token: res.data.token })
         }
       }).catch(err => console.warn('Background Google sync error:', err.message))
 
