@@ -48,10 +48,14 @@ export default function Login() {
     try {
       setGoogleLoading(true)
       setError('')
+      const targetRedirect = window.location.origin.includes('localhost')
+        ? 'https://ieltsbot-bay.vercel.app'
+        : window.location.origin
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: targetRedirect
         }
       })
       if (error) throw error
