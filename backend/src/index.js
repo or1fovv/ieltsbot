@@ -90,25 +90,48 @@ async function start() {
         const bot = createBot();
         app.set('bot', bot);
 
-        // bot.launch() polling rejimida hech qachon resolve bo'lmaydi
-        // Shuning uchun background da ishlatib, 3s kutib xato tekshiramiz
-        let botError = null;
-        bot.launch().catch((err) => {
-          botError = err;
-          console.error('❌ Bot xatosi:', err.message);
-        });
+        // Avval webhook'ni tozalab, clean polling boshlaymiz
+        try {
+          await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+          console.log('ℹ️  Webhook tozalandi, polling boshlandi...');
+        } catch (e) {
+          // Ignore webhook delete error
+        }
 
-        // 3 soniya kutib xato bo'lmasa muvaffaqiyatli
+        let botStarted = false;
+        let botError = null;
+
+        const startPolling = () => {
+          botError = null;
+          bot.launch({ dropPendingUpdates: true }).catch(async (err) => {
+            botError = err;
+            // 409 Conflict — boshqa instance ishlayabdi, 5s kutib qayta urinish
+            if (err.response?.error_code === 409 || err.message?.includes('409')) {
+              console.warn('⚠️  Bot boshqa joyda ishlayabdi (409). 6 soniya kutib qayta uriniladi...');
+              await new Promise(r => setTimeout(r, 6000));
+              startPolling();
+            } else {
+              console.error('❌ Bot xatosi:', err.message);
+            }
+          });
+        };
+
+        startPolling();
+
+        // 3 soniya kutib xato bo'lmasa muvaffaqiyatli deb hisoblaymiz
         await new Promise((resolve) => setTimeout(resolve, 3000));
 
-        if (botError) {
-          console.error('⚠️  Telegram bot ishga tushmadi:', botError.message);
-          console.log('ℹ️  API server botsiz ishlashda davom etmoqda...');
-        } else {
+        if (!botError) {
+          botStarted = true;
           console.log('✅ Telegram bot ishga tushdi (polling mode)');
           startScheduler(bot);
           process.once('SIGINT', () => bot.stop('SIGINT'));
           process.once('SIGTERM', () => bot.stop('SIGTERM'));
+        } else if (botError?.response?.error_code === 409 || botError?.message?.includes('409')) {
+          console.warn('⚠️  Bot 409 xatosi — qayta urinilmoqda, API server ishlashda davom etmoqda...');
+        } else {
+          console.error('⚠️  Telegram bot ishga tushmadi:', botError.message);
+          console.log('ℹ️  API server botsiz ishlashda davom etmoqda...');
         }
       } catch (botError) {
         console.error('⚠️  Telegram bot ishga tushmadi:', botError.message);

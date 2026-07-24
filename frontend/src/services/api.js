@@ -1,19 +1,27 @@
 import axios from 'axios'
 
-// API base URL
-const baseURL = import.meta.env.VITE_API_URL || '/api'
+// API base URL - backend server manzili
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api'
 
 const api = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 8000, // 8 soniya kutib, muvaffaqiyatsiz bo'lsa fallback
 })
 
 const demoTopics = {
   speaking: [
     {
       id: 'demo-speaking-part1',
+      type: 'speaking',
+      subtype: 'part1',
+      topicText: 'Talk about your hometown. Where is it? What is it like? Do you prefer living there or somewhere else?',
+      topicData: { instructions: 'Answer naturally for 1-2 minutes. Use simple, clear language.', time_limit_minutes: 2 },
+    },
+    {
+      id: 'demo-speaking-part1-b',
       type: 'speaking',
       subtype: 'part1',
       topicText: 'Do you prefer studying in the morning or in the evening? Explain your answer with examples.',
@@ -23,34 +31,73 @@ const demoTopics = {
       id: 'demo-speaking-part2',
       type: 'speaking',
       subtype: 'part2',
-      topicText: 'Describe a skill you would like to learn in the future. You should say what it is, why you want to learn it, how you would learn it, and how it could help you.',
-      topicData: { instructions: 'Prepare a structured answer with clear examples.', time_limit_minutes: 2 },
+      topicText: 'Describe a skill you would like to learn in the future. You should say: what the skill is, why you want to learn it, how you would learn it, and explain how it could help you.',
+      topicData: { instructions: 'Prepare for 1 minute, then speak for 2-3 minutes.', time_limit_minutes: 3 },
+    },
+    {
+      id: 'demo-speaking-part2-b',
+      type: 'speaking',
+      subtype: 'part2',
+      topicText: 'Describe a family member you admire greatly. You should say: who this person is, what they are like, what you do together, and explain why you admire them.',
+      topicData: { instructions: 'Prepare for 1 minute, then speak for 2-3 minutes.', time_limit_minutes: 3 },
     },
     {
       id: 'demo-speaking-part3',
       type: 'speaking',
       subtype: 'part3',
-      topicText: 'How has technology changed the way people learn languages?',
-      topicData: { instructions: 'Give a developed opinion and compare different viewpoints.', time_limit_minutes: 3 },
+      topicText: 'How has technology changed the way people learn languages? What are the main advantages and disadvantages of learning languages online?',
+      topicData: { instructions: 'Give a developed opinion and compare different viewpoints. Speak for 3-4 minutes.', time_limit_minutes: 4 },
+    },
+    {
+      id: 'demo-speaking-part3-b',
+      type: 'speaking',
+      subtype: 'part3',
+      topicText: 'Discussion: What role should governments play in encouraging people to live healthier lifestyles? Should healthy food be subsidized?',
+      topicData: { instructions: 'Give a well-reasoned discussion with examples. Speak for 3-4 minutes.', time_limit_minutes: 4 },
     },
   ],
   writing: [
     {
-      id: 'demo-writing-task1',
+      id: 'demo-writing-task1-a',
       type: 'writing',
       subtype: 'task1',
-      topicText: 'The chart shows how students in one city travelled to school in 2010 and 2020. Summarise the information by selecting and reporting the main features.',
-      topicData: { instructions: 'Write at least 150 words.', time_limit_minutes: 20, word_limit: 150 },
+      topicText: 'The bar chart below shows the number of mobile phone users in five different countries in 2023. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+      topicData: {
+        instructions: 'Write at least 150 words in 20 minutes. Include an overview and compare key data.',
+        image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80',
+        time_limit_minutes: 20,
+        word_limit: 150,
+      },
     },
     {
-      id: 'demo-writing-task2',
+      id: 'demo-writing-task1-b',
+      type: 'writing',
+      subtype: 'task1',
+      topicText: 'The line graph shows global carbon dioxide emissions (in billion tonnes) between 1990 and 2020. Summarise the main trends shown in the graph and compare key periods.',
+      topicData: {
+        instructions: 'Write at least 150 words. Describe overall trends and any notable changes. Write in 20 minutes.',
+        image_url: 'https://images.unsplash.com/photo-1543286386-713bdd548da4?w=800&auto=format&fit=crop&q=80',
+        time_limit_minutes: 20,
+        word_limit: 150,
+      },
+    },
+    {
+      id: 'demo-writing-task2-a',
       type: 'writing',
       subtype: 'task2',
       topicText: 'Some people believe that online learning is more effective than traditional classroom learning. To what extent do you agree or disagree?',
-      topicData: { instructions: 'Write at least 250 words.', time_limit_minutes: 40, word_limit: 250 },
+      topicData: { instructions: 'Write at least 250 words in 40 minutes. Give clear reasons and relevant examples.', time_limit_minutes: 40, word_limit: 250 },
+    },
+    {
+      id: 'demo-writing-task2-b',
+      type: 'writing',
+      subtype: 'task2',
+      topicText: 'Many people believe that children who grow up in cities have fewer opportunities to connect with nature. Do you think this is a problem? What can be done to solve it?',
+      topicData: { instructions: 'Write at least 250 words in 40 minutes. Address both parts of the question.', time_limit_minutes: 40, word_limit: 250 },
     },
   ],
 }
+
 
 const demoProgress = {
   streak: 2,
@@ -99,7 +146,10 @@ const demoFeedback = {
   improved_version: 'Online learning can be highly effective when students have discipline and access to good materials. However, classroom learning still offers direct interaction and immediate feedback.',
 }
 
-const isDemoMode = () => import.meta.env.DEV || localStorage.getItem('demo_mode') === '1'
+const isDemoMode = () =>
+  import.meta.env.DEV ||
+  localStorage.getItem('demo_mode') === '1' ||
+  !!localStorage.getItem('web_user_profile') // local web users get demo fallback
 
 const getStoredDemoSubmissions = () => {
   try {

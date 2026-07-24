@@ -19,7 +19,15 @@ export default function ActiveTest() {
     const fetchTopic = async () => {
       try {
         const data = await getTodayTopics()
-        const foundTopic = data.topics[type]?.find(t => t.subtype === subtype)
+        const typeTopics = data.topics[type] || []
+
+        // Avval exact subtype bo'yicha topamiz
+        let foundTopic = typeTopics.find(t => t.subtype === subtype)
+
+        // Topilmasa, birinchi mavzuni olamiz (fallback)
+        if (!foundTopic && typeTopics.length > 0) {
+          foundTopic = typeTopics[0]
+        }
         
         if (foundTopic) {
           setTopic(foundTopic)
@@ -27,9 +35,10 @@ export default function ActiveTest() {
             setTimeLeft(foundTopic.topicData.time_limit_minutes * 60)
           }
         } else {
-          setError("Mavzu topilmadi")
+          setError("Bu turdagi mavzu topilmadi. Iltimos, testlar ro'yxatiga qayting.")
         }
       } catch (err) {
+        console.error('fetchTopic error:', err)
         setError("Ma'lumotni yuklashda xato yuz berdi")
       } finally {
         setLoading(false)
