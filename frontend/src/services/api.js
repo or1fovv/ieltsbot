@@ -1,7 +1,8 @@
 import axios from 'axios'
 
-// API base URL - backend server manzili
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api'
+// API base URL - Render.com deployed backend
+const baseURL = import.meta.env.VITE_API_URL || 'https://ieltsbot-backend.onrender.com/api'
+
 
 const api = axios.create({
   baseURL,
