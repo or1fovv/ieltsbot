@@ -31,7 +31,23 @@ export const useAuthStore = create((set, get) => ({
     try {
       set({ isLoading: true })
       
-      // 1. Supabase Auth session tekshirish (Google OAuth birinchi o'rinda)
+      // 1. Google OAuth PKCE Redirect Handler: URL dan code ni olib sessionga almashtirish
+      const searchParams = new URLSearchParams(window.location.search)
+      const authCode = searchParams.get('code')
+      if (authCode) {
+        try {
+          const { data } = await supabase.auth.exchangeCodeForSession(authCode)
+          if (data?.session?.user) {
+            window.history.replaceState({}, document.title, window.location.pathname)
+            await get().loginGoogle(data.session.user)
+            return
+          }
+        } catch (err) {
+          console.warn('PKCE exchange error:', err.message)
+        }
+      }
+
+      // 2. Supabase Auth session tekshirish
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         await get().loginGoogle(session.user)
