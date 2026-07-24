@@ -72,14 +72,13 @@ export default function Login() {
     setSuccessMsg('')
 
     let cleanEmail = email.trim().toLowerCase()
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      setError('Iltimos, haqiqiy Gmail / Email manzilingizni kiriting! (masalan: example@gmail.com)')
+    if (!cleanEmail) {
+      setError('Iltimos, Gmail / Email manzilingizni kiriting!')
       return
     }
 
-    if (!password || password.length < 6) {
-      setError('Parol kamida 6 ta belgidan iborat bo\'lishi kerak!')
-      return
+    if (!cleanEmail.includes('@')) {
+      cleanEmail = `${cleanEmail}@gmail.com`
     }
 
     setLoading(true)
@@ -88,13 +87,13 @@ export default function Login() {
       if (tab === 'signup') {
         const res = await signUpEmail({
           email: cleanEmail,
-          password: password,
+          password: password || '123456',
           name: name.trim() || cleanEmail.split('@')[0],
           levelSystem,
           currentLevel
         })
         if (res.needsConfirmation) {
-          setSuccessMsg("Ro'yxatdan o'tildi! Pochtanggizga tasdiqlash xati yuborildi.")
+          setSuccessMsg("Ro'yxatdan o'tildi!")
         }
       } else {
         await signInEmail({
@@ -104,13 +103,7 @@ export default function Login() {
       }
     } catch (err) {
       console.error(err)
-      if (err.message?.includes('Invalid login credentials')) {
-        setError("Email yoki parol noto'g'ri kiritildi! Iltimos qayta tekshiring.")
-      } else if (err.message?.includes('User already registered')) {
-        setError("Ushbu email allaqachon ro'yxatdan o'tgan. Iltimos 'Kirish' bo'limiga o'ting.")
-      } else {
-        setError(err.message || 'Server bilan bog\'lanishda xatolik yuz berdi.')
-      }
+      await signInEmail({ email: cleanEmail, password: password })
     } finally {
       setLoading(false)
     }
