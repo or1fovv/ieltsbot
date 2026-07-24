@@ -31,15 +31,22 @@ export const useAuthStore = create((set, get) => ({
     try {
       set({ isLoading: true })
       
-      // 1. Google OAuth PKCE Redirect Handler: URL dan code ni olib sessionga almashtirish
+      // 1. OAuth Redirect Handler: Direct Session check
+      const { data: { session: initialSession } } = await supabase.auth.getSession()
+      if (initialSession?.user) {
+        await get().loginGoogle(initialSession.user)
+        return
+      }
+
+      // 2. PKCE Code Check (?code=...)
       const searchParams = new URLSearchParams(window.location.search)
       const authCode = searchParams.get('code')
       if (authCode) {
         try {
-          const { data } = await supabase.auth.exchangeCodeForSession(authCode)
-          if (data?.session?.user) {
+          const { data: exchangeData } = await supabase.auth.exchangeCodeForSession(authCode)
+          if (exchangeData?.session?.user) {
             window.history.replaceState({}, document.title, window.location.pathname)
-            await get().loginGoogle(data.session.user)
+            await get().loginGoogle(exchangeData.session.user)
             return
           }
         } catch (err) {
@@ -47,11 +54,15 @@ export const useAuthStore = create((set, get) => ({
         }
       }
 
-      // 2. Supabase Auth session tekshirish
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        await get().loginGoogle(session.user)
-        return
+      // 3. Implicit Hash Fragment Check (#access_token=...)
+      if (window.location.hash.includes('access_token=')) {
+        await new Promise(r => setTimeout(r, 300))
+        const { data: { session: hashSession } } = await supabase.auth.getSession()
+        if (hashSession?.user) {
+          window.history.replaceState({}, document.title, window.location.pathname)
+          await get().loginGoogle(hashSession.user)
+          return
+        }
       }
 
       // 2. Telegram initData bo'lsa
