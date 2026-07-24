@@ -11,6 +11,7 @@ export default function ActiveTest() {
   const [topic, setTopic] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState('')
   const [textAnswer, setTextAnswer] = useState('')
   const [timeLeft, setTimeLeft] = useState(null)
   const [error, setError] = useState('')
@@ -72,11 +73,16 @@ export default function ActiveTest() {
     
     try {
       setSubmitting(true)
+      setSubmitStatus('Javob yuborilmoqda...')
+      await new Promise(r => setTimeout(r, 500))
+      setSubmitStatus('AI baholamoqda... (20-40 soniya)')
       const data = await submitWriting(topic.id, textAnswer, subtype)
+      setSubmitStatus('Natija tayyor!')
       navigate(`/results/${data.submission.id}`)
     } catch (err) {
       console.error(err)
-      alert(err.response?.data?.error || "Xato yuz berdi")
+      setSubmitStatus('')
+      alert(err.response?.data?.error || "Xato yuz berdi. Qaytadan urinib ko'ring.")
       setSubmitting(false)
     }
   }
@@ -86,11 +92,17 @@ export default function ActiveTest() {
     
     try {
       setSubmitting(true)
+      setSubmitStatus('Audio yuklanmoqda...')
+      await new Promise(r => setTimeout(r, 500))
+      setSubmitStatus('Ovoz matnga o\'girilmoqda... (Groq Whisper)')
+      setTimeout(() => setSubmitStatus('AI baholamoqda... (30-60 soniya)'), 8000)
       const data = await submitSpeaking(topic.id, audioBlob, subtype)
+      setSubmitStatus('Natija tayyor!')
       navigate(`/results/${data.submission.id}`)
     } catch (err) {
       console.error(err)
-      alert(err.response?.data?.error || "Xato yuz berdi")
+      setSubmitStatus('')
+      alert(err.response?.data?.error || "Xato yuz berdi. Qaytadan urinib ko'ring.")
       setSubmitting(false)
     }
   }
@@ -185,7 +197,7 @@ export default function ActiveTest() {
               {submitting ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Baholanmoqda...
+                  {submitStatus || 'Baholanmoqda...'}
                 </>
               ) : (
                 <>
@@ -194,9 +206,14 @@ export default function ActiveTest() {
                 </>
               )}
             </button>
+            {submitting && (
+              <p className="text-center text-xs text-primary-300 animate-pulse">
+                ⏳ Iltimos kuting — AI javobingizni tahlil qilmoqda...
+              </p>
+            )}
           </div>
         ) : (
-          <AudioRecorder onSubmit={handleSpeakingSubmit} isSubmitting={submitting} />
+          <AudioRecorder onSubmit={handleSpeakingSubmit} isSubmitting={submitting} submitStatus={submitStatus} />
         )}
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Mic, Square, Send } from 'lucide-react'
 
-export default function AudioRecorder({ onSubmit, isSubmitting }) {
+export default function AudioRecorder({ onSubmit, isSubmitting, submitStatus }) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [audioBlob, setAudioBlob] = useState(null)
@@ -83,7 +83,7 @@ export default function AudioRecorder({ onSubmit, isSubmitting }) {
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Yuborilmoqda...
+                  {submitStatus || 'Yuborilmoqda...'}
                 </>
               ) : (
                 <>
@@ -93,6 +93,11 @@ export default function AudioRecorder({ onSubmit, isSubmitting }) {
               )}
             </button>
           </div>
+          {isSubmitting && (
+            <p className="text-center text-xs text-primary-300 animate-pulse mt-2">
+              ⏳ Iltimos kuting — Groq AI ovozingizni tahlil qilmoqda...
+            </p>
+          )}
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4">

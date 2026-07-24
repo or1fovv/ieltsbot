@@ -9,7 +9,6 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
-  timeout: 8000, // 8 soniya kutib, muvaffaqiyatsiz bo'lsa fallback
 })
 
 const demoTopics = {
@@ -300,11 +299,12 @@ export const updateSettings = async (settings) => {
 // Matnli javobni yuborish (Writing)
 export const submitWriting = async (topicId, content, subtype) => {
   try {
+    // Writing baholash Groq LLaMA orqali 20-40s olishi mumkin — 120s timeout
     const { data } = await api.post('/submissions/writing', {
       topicId,
       content,
       subtype
-    })
+    }, { timeout: 120000 })
     return data
   } catch (error) {
     if (!isDemoMode()) throw error
@@ -321,10 +321,10 @@ export const submitSpeaking = async (topicId, audioBlob, subtype) => {
   if (subtype) formData.append('subtype', subtype)
 
   try {
+    // Speaking: Groq Whisper (STT) + LLaMA (baholash) = 30-60s — 120s timeout
     const { data } = await api.post('/submissions/speaking', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
     })
     return data
   } catch (error) {
