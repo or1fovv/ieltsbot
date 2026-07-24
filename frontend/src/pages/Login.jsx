@@ -23,9 +23,12 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await loginWeb({ identifier: inputVal, name: inputVal, levelSystem, currentLevel })
+      const res = await loginWeb({ identifier: inputVal, name: inputVal, levelSystem, currentLevel })
+      if (res && res.success) {
+        // Successful login
+      }
     } catch (err) {
-      loginDemo()
+      setError(err.response?.data?.error || 'Server bilan bog\'lanishda xato. Iltimos keyinroq urinib ko\'ring.')
     } finally {
       setLoading(false)
     }

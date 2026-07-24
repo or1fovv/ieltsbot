@@ -82,43 +82,19 @@ export const useAuthStore = create((set) => ({
     const cleanName = (name || identifier || 'Foydalanuvchi').replace('@', '').trim()
 
     try {
-      const res = await apiWebLogin({ identifier, name, levelSystem, currentLevel })
+      const res = await apiWebLogin({ identifier, name: cleanName, levelSystem, currentLevel })
       if (res && typeof res === 'object' && res.token && res.user) {
         localStorage.setItem('web_user_token', res.token)
+        localStorage.removeItem('web_user_profile')
         localStorage.removeItem('demo_mode')
         set({ user: res.user, token: res.token, isLoading: false })
         return { success: true }
       }
     } catch (err) {
-      console.warn('API Login fallback to local session:', err.message)
+      console.error('API Login Error:', err.message)
+      set({ isLoading: false })
+      throw err
     }
-
-    // Unstoppable Local Session Fallback
-    const localUser = {
-      id: `web-${Date.now()}`,
-      telegramId: '000000000',
-      firstName: cleanName,
-      lastName: '',
-      username: identifier?.replace('@', '') || 'web_user',
-      levelSystem: levelSystem || 'ielts',
-      currentLevel: currentLevel || '6.0',
-      language: 'uz',
-      isPremium: false,
-      progressStats: {
-        streak: 1,
-        longestStreak: 1,
-        totalTests: 0,
-        totalSpeaking: 0,
-        totalWriting: 0,
-      },
-      createdAt: new Date().toISOString(),
-    }
-
-    localStorage.setItem('web_user_profile', JSON.stringify(localUser))
-    localStorage.setItem('web_user_token', localUser.id)
-    localStorage.removeItem('demo_mode')
-    set({ user: localUser, token: localUser.id, isLoading: false })
-    return { success: true }
   },
 
   loginDemo: () => {
