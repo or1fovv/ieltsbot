@@ -161,4 +161,41 @@ router.put('/settings', telegramAuthMiddleware, resolveUserMiddleware, async (re
   }
 });
 
+// =============================================
+// POST /api/user/reset-limit — Admin orqali joriy limitni nollash (testlash uchun)
+// =============================================
+router.post('/reset-limit', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) => {
+  try {
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { testsToday: 0 },
+    });
+    res.json({ success: true, message: 'Limit muvaffaqiyatli nollashdi!', testsToday: 0 });
+  } catch (error) {
+    console.error('Reset limit error:', error);
+    res.status(500).json({ error: 'Limitni nollashda xato' });
+  }
+});
+
+// =============================================
+// POST /api/user/upgrade-premium — Premium obunani yoqish/o'chirish
+// =============================================
+router.post('/upgrade-premium', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) => {
+  try {
+    const { isPremium } = req.body;
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { isPremium: isPremium ?? true },
+    });
+    res.json({
+      success: true,
+      message: updated.isPremium ? 'Premium muvaffaqiyatli faollashtirildi!' : 'Premium o\'chirildi!',
+      isPremium: updated.isPremium
+    });
+  } catch (error) {
+    console.error('Upgrade premium error:', error);
+    res.status(500).json({ error: 'Obunani yangilashda xato' });
+  }
+});
+
 export default router;

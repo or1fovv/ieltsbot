@@ -14,6 +14,7 @@ import Progress from './pages/Progress'
 import Profile from './pages/Profile'
 import History from './pages/History'
 import Login from './pages/Login'
+import Admin from './pages/Admin'
 import Navbar from './components/Navbar'
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
           <Route path="/progress" element={<Progress />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/history" element={<History />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </main>
       

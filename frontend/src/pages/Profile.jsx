@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Settings, Save, Check, LogOut } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Settings, Save, Check, LogOut, Shield } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { updateSettings } from '../services/api'
 
@@ -140,6 +141,15 @@ export default function Profile() {
           </button>
         </div>
       </div>
+
+      {/* Admin Panel button */}
+      <Link
+        to="/admin"
+        className="w-full p-3.5 bg-warning-500/10 hover:bg-warning-500/20 border border-warning-500/30 text-warning-400 font-semibold rounded-xl flex items-center justify-center gap-2 transition-all mb-3 text-sm"
+      >
+        <Shield size={18} />
+        <span>Tizim boshqaruvi (Admin Panel)</span>
+      </Link>
 
       {/* Logout button */}
       <button

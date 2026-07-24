@@ -346,4 +346,17 @@ export const submitSpeaking = async (topicId, audioBlob, subtype) => {
   }
 }
 
+
+// Limitni nollash (Admin)
+export const resetLimit = async () => {
+  const { data } = await api.post('/user/reset-limit')
+  return data
+}
+
+// Premium yoqish/o'chirish (Admin)
+export const upgradePremium = async (isPremium = true) => {
+  const { data } = await api.post('/user/upgrade-premium', { isPremium })
+  return data
+}
+
 export default api
