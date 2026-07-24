@@ -209,51 +209,32 @@ export const useAuthStore = create((set, get) => ({
     return { success: true }
   },
 
-  // 3. Real Email & Password Kirish (Seamless Error-Free Login)
+  // 3. Real Email & Password Kirish (Strict Password Checking)
   signInEmail: async ({ email, password }) => {
     const cleanEmail = (email || '').trim().toLowerCase()
+
+    if (!password) {
+      throw new Error('Iltimos parolingizni kiriting!')
+    }
+
+    // Supabase Auth orqali parolni rasman va qattiq tekshirish
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: password,
+    })
+
+    if (authError) {
+      throw new Error("Email yoki parol noto'g'ri kiritildi!")
+    }
+
     const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
     const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.includes('maxmudorifov36') || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv')
 
-    try {
-      if (password) {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password: password,
-        })
-
-        if (!authError && authData?.user) {
-          const emailUser = {
-            id: authData.user.id,
-            telegramId: '000000000',
-            firstName: authData.user.user_metadata?.full_name || cleanEmail.split('@')[0],
-            username: cleanEmail.split('@')[0],
-            email: cleanEmail,
-            role: isAdmin ? 'admin' : 'user',
-            isPremium: isAdmin ? true : false,
-            levelSystem: 'ielts',
-            currentLevel: '6.0',
-            language: 'uz',
-            progressStats: { streak: 1, totalTests: 0 },
-          }
-
-          localStorage.setItem('web_user_token', emailUser.id)
-          localStorage.setItem('web_user_profile', JSON.stringify(emailUser))
-          localStorage.removeItem('demo_mode')
-          set({ user: emailUser, token: emailUser.id, isLoading: false })
-          return { success: true }
-        }
-      }
-    } catch (e) {
-      console.warn('Supabase signInWithPassword fallback:', e.message)
-    }
-
-    // Seamless Fallback Login (Never fail or display error banner)
     const emailUser = {
-      id: `email-${cleanEmail.replace(/[^a-z0-9]/gi, '')}`,
+      id: authData.user.id,
       telegramId: '000000000',
-      firstName: cleanEmail.split('@')[0] || 'User',
-      username: cleanEmail.split('@')[0] || 'user',
+      firstName: authData.user.user_metadata?.full_name || cleanEmail.split('@')[0],
+      username: cleanEmail.split('@')[0],
       email: cleanEmail,
       role: isAdmin ? 'admin' : 'user',
       isPremium: isAdmin ? true : false,
