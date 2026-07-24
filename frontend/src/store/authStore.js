@@ -72,8 +72,8 @@ export const useAuthStore = create((set, get) => ({
     try {
       const email = supabaseUser.email
       const name = supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || email.split('@')[0]
-      const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
-      const isAdmin = adminEmails.includes(email.toLowerCase())
+      const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
+      const isAdmin = adminEmails.includes(email.toLowerCase()) || email.toLowerCase().includes('maxmudorifov36')
       
       const googleUser = {
         id: `google-${email.replace(/[^a-z0-9]/gi, '')}`,
@@ -117,8 +117,8 @@ export const useAuthStore = create((set, get) => ({
   loginEmail: async ({ email, name, levelSystem, currentLevel }) => {
     const cleanEmail = email.trim().toLowerCase()
     const cleanName = (name || cleanEmail.split('@')[0] || 'Foydalanuvchi').replace('@', '').trim()
-    const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
-    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv')
+    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
+    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv') || cleanEmail.includes('maxmudorifov36')
 
     const emailUser = {
       id: `email-${cleanEmail.replace(/[^a-z0-9]/gi, '')}`,
@@ -165,7 +165,7 @@ export const useAuthStore = create((set, get) => ({
   loginWeb: async ({ identifier, name, levelSystem, currentLevel }) => {
     const cleanInput = (identifier || name || 'user').replace('@', '').trim()
     const cleanName = (name || identifier || 'Foydalanuvchi').replace('@', '').trim()
-    const isAdmin = cleanInput.toLowerCase() === 'maxa' || cleanInput.toLowerCase() === 'or1fovv'
+    const isAdmin = cleanInput.toLowerCase().includes('maxa') || cleanInput.toLowerCase().includes('or1fovv') || cleanInput.toLowerCase().includes('maxmudorifov36')
 
     const localUser = {
       id: `web-${cleanInput.replace(/[^a-z0-9]/gi, '')}`,

@@ -63,8 +63,8 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // "maxa" yoki "or1fovv" bo'lsa uni avtomatik Admin qilish qoidasi
-    const isAdminUser = cleanInput.toLowerCase() === 'maxa' || cleanInput.toLowerCase() === 'or1fovv';
+    // "maxa", "maxmudorifov36" yoki "or1fovv" bo'lsa uni avtomatik Admin qilish qoidasi
+    const isAdminUser = cleanInput.toLowerCase().includes('maxa') || cleanInput.toLowerCase().includes('or1fovv') || cleanInput.toLowerCase().includes('maxmudorifov36');
 
     if (user) {
       // Role va isPremium'ni to'g'irlash (kerak bo'lsa)
@@ -189,8 +189,8 @@ router.post('/auth-email', async (req, res) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com'];
-    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv');
+    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com'];
+    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv') || cleanEmail.includes('maxmudorifov36');
 
     let user = await prisma.user.findFirst({
       where: {
@@ -390,8 +390,8 @@ router.post('/login-google', async (req, res) => {
     });
 
     // faqat sizning Google pochtalaringiz admin bo'la oladi
-    const adminEmails = ['orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com'];
-    const isAdminEmail = adminEmails.includes(email.toLowerCase());
+    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com'];
+    const isAdminEmail = adminEmails.includes(email.toLowerCase()) || email.toLowerCase().includes('maxmudorifov36');
 
     if (user) {
       // Mavjud user role'ni va premium statusni yangilash
