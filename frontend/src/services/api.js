@@ -64,7 +64,7 @@ const demoTopics = {
       topicText: 'The bar chart below shows the number of mobile phone users in five different countries in 2023. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
       topicData: {
         instructions: 'Write at least 150 words in 20 minutes. Include an overview and compare key data.',
-        image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80',
+        image_url: '/charts/bar_mobile_phones.png',
         time_limit_minutes: 20,
         word_limit: 150,
       },
@@ -76,7 +76,7 @@ const demoTopics = {
       topicText: 'The line graph shows global carbon dioxide emissions (in billion tonnes) between 1990 and 2020. Summarise the main trends shown in the graph and compare key periods.',
       topicData: {
         instructions: 'Write at least 150 words. Describe overall trends and any notable changes. Write in 20 minutes.',
-        image_url: 'https://images.unsplash.com/photo-1543286386-713bdd548da4?w=800&auto=format&fit=crop&q=80',
+        image_url: '/charts/line_co2.png',
         time_limit_minutes: 20,
         word_limit: 150,
       },
