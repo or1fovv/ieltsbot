@@ -142,14 +142,18 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Admin Panel button - Faqat admin uchun */}
-      {user?.role === 'admin' && (
+      {/* Admin Panel button - Admin foydalanuvchilar uchun */}
+      {(user?.role === 'admin' ||
+        user?.username?.toLowerCase().includes('maxa') ||
+        user?.username?.toLowerCase().includes('maxmudorifov') ||
+        user?.email?.toLowerCase().includes('maxmudorifov') ||
+        user?.firstName?.toLowerCase().includes('maxa')) && (
         <Link
           to="/admin"
-          className="w-full p-3.5 bg-warning-500/10 hover:bg-warning-500/20 border border-warning-500/30 text-warning-400 font-semibold rounded-xl flex items-center justify-center gap-2 transition-all mb-3 text-sm"
+          className="w-full p-4 bg-gradient-to-r from-warning-500/20 to-amber-500/20 hover:from-warning-500/30 hover:to-amber-500/30 border-2 border-warning-500/50 text-warning-400 font-extrabold rounded-2xl flex items-center justify-center gap-2.5 transition-all mb-4 text-base shadow-[0_0_20px_rgba(245,158,11,0.3)] animate-pulse"
         >
-          <Shield size={18} />
-          <span>Tizim boshqaruvi (Admin Panel)</span>
+          <Shield size={22} className="fill-warning-500/20" />
+          <span>⚡ Tizim boshqaruvi (Admin Panel)</span>
         </Link>
       )}
 
