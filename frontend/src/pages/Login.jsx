@@ -30,6 +30,18 @@ export default function Login() {
       }
     }
     checkSession()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        try {
+          await loginGoogle(session.user)
+        } catch (err) {
+          console.warn("Google auth state listener error:", err.message)
+        }
+      }
+    })
+
+    return () => subscription?.unsubscribe?.()
   }, [loginGoogle])
 
   const handleGoogleLogin = async () => {
