@@ -160,7 +160,7 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // 2. Real Email & Password Ro'yxatdan O'tish (Supabase Auth)
+  // 2. Real Email & Password Ro'yxatdan O'tish (Supabase Auth - Strict Check)
   signUpEmail: async ({ email, password, name, levelSystem, currentLevel }) => {
     const cleanEmail = (email || '').trim().toLowerCase()
     const cleanName = (name || cleanEmail.split('@')[0] || 'Foydalanuvchi').replace('@', '').trim()
@@ -179,7 +179,10 @@ export const useAuthStore = create((set, get) => ({
       }
     })
 
-    if (authError && !authError.message.includes('already registered')) {
+    if (authError) {
+      if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
+        throw new Error("Ushbu email allaqachon ro'yxatdan o'tgan! Iltimos, 'Kirish' bo'limiga o'tib, parolingizni kiriting.")
+      }
       throw new Error(authError.message)
     }
 
@@ -209,7 +212,7 @@ export const useAuthStore = create((set, get) => ({
     return { success: true }
   },
 
-  // 3. Real Email & Password Kirish (Strict Password Checking)
+  // 3. Real Email & Password Kirish (Supabase Auth - Strict Password Check)
   signInEmail: async ({ email, password }) => {
     const cleanEmail = (email || '').trim().toLowerCase()
 
@@ -228,7 +231,7 @@ export const useAuthStore = create((set, get) => ({
     }
 
     const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
-    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.includes('maxmudorifov36') || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv')
+    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.includes('maxmudorifov36') || cleanEmail.startsWith('maxa')
 
     const emailUser = {
       id: authData.user.id,
