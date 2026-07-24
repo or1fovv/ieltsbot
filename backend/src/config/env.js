@@ -30,8 +30,7 @@ const config = {
   frontendUrl: process.env.FRONTEND_URL || 'https://ieltsbot-bay.vercel.app',
   webAppUrl: process.env.WEB_APP_URL || 'https://ieltsbot-bay.vercel.app',
 
-  // Limits
-  freeTestsPerDay: 3,
+  // Limits (cheksiz - limit yo'q)
   diagnosticQuestionCount: 5,
 };
 

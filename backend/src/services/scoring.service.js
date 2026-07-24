@@ -248,34 +248,8 @@ export async function getLeaderboard(limit = 20) {
  * @returns {Promise<{allowed: boolean, remaining: number}>}
  */
 export async function checkDailyLimit(userId) {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return { allowed: false, remaining: 0 };
-
-  // Premium foydalanuvchilarga limit yo'q
-  if (user.isPremium) return { allowed: true, remaining: 999 };
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const lastDate = user.lastTestDate ? new Date(user.lastTestDate) : null;
-  let testsToday = user.testsToday;
-
-  // Agar oxirgi test boshqa kunda bo'lsa — countni reset qilish
-  if (!lastDate || lastDate.getTime() < today.getTime()) {
-    testsToday = 0;
-    await prisma.user.update({
-      where: { id: userId },
-      data: { testsToday: 0, lastTestDate: today },
-    });
-  }
-
-  const FREE_LIMIT = 3;
-  const remaining = Math.max(0, FREE_LIMIT - testsToday);
-
-  return {
-    allowed: testsToday < FREE_LIMIT,
-    remaining,
-  };
+  // Limit yo'q — barcha foydalanuvchilar cheksiz test qila oladi
+  return { allowed: true, remaining: 9999 };
 }
 
 /**

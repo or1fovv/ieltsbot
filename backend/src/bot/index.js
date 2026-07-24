@@ -22,7 +22,6 @@ import { transcribeAudio } from '../services/stt.service.js';
 import {
   createSubmission,
   getProgressStats,
-  checkDailyLimit,
   incrementTestCount,
 } from '../services/scoring.service.js';
 import { markTopicUsed } from '../services/topic.service.js';
@@ -202,18 +201,13 @@ export function createBot() {
         return ctx.reply('Avval /start buyrug\'ini bosing.');
       }
 
-      const limit = await checkDailyLimit(user.id);
       const t = getTexts(user.language);
-
-      if (!limit.allowed) {
-        return ctx.replyWithMarkdown(t.limitReached, mainMenuKeyboard(user.language));
-      }
 
       const session = getSession(ctx.from.id);
       session.state = 'choosing_test_type';
 
       await ctx.replyWithMarkdown(
-        `${t.chooseTestType}\n\n💡 Qolgan bepul testlar: **${limit.remaining}**`,
+        t.chooseTestType,
         testTypeKeyboard(user.language)
       );
     } catch (error) {
