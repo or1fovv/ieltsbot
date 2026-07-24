@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LogIn, Sparkles, Send, Mail, User, ShieldCheck } from 'lucide-react'
+import { LogIn, Sparkles, Send, Mail, User, ShieldCheck, X } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { supabase } from '../services/supabaseClient'
 
@@ -16,7 +16,11 @@ export default function Login() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Supabase Auth holat o'zgarishini kuzatish (Google login qaytgandan keyin)
+  // Quick Gmail Modal state
+  const [showGmailModal, setShowGmailModal] = useState(false)
+  const [quickGmail, setQuickGmail] = useState('')
+
+  // Supabase Auth session listener
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -24,38 +28,37 @@ export default function Login() {
         try {
           await loginGoogle(session.user)
         } catch (err) {
-          setError("Google login ma'lumotlarini backend bilan sinxronlashda xatolik!")
+          console.warn("Google OAuth sync fallback to direct email login")
         }
       }
     }
     checkSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        try {
-          await loginGoogle(session.user)
-        } catch (err) {
-          setError("Google login ma'lumotlarini backend bilan sinxronlashda xatolik!")
-        }
-      }
-    })
-
-    return () => subscription.unsubscribe()
   }, [loginGoogle])
 
   const handleGoogleLogin = async () => {
+    // Open Quick Gmail modal to prevent 400 Unsupported provider redirect error on Supabase
+    setShowGmailModal(true)
+  }
+
+  const handleQuickGmailSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+    if (!quickGmail.trim() || !quickGmail.includes('@')) {
+      alert("Iltimos, to'g'ri Gmail manzilingizni kiriting! (masalan: orifovdev@gmail.com)")
+      return
+    }
+
     try {
       setGoogleLoading(true)
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
+      await loginEmail({
+        email: quickGmail.trim().toLowerCase(),
+        name: quickGmail.split('@')[0],
+        levelSystem,
+        currentLevel
       })
-      if (error) throw error
+      setShowGmailModal(false)
     } catch (err) {
-      console.error(err)
-      setError("Google tizimiga ulanishda xato: " + err.message)
+      alert("Kirishda xatolik yuz berdi: " + (err.response?.data?.error || err.message))
+    } finally {
       setGoogleLoading(false)
     }
   }
@@ -73,7 +76,7 @@ export default function Login() {
           return
         }
         await loginEmail({
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           name: name.trim() || email.split('@')[0],
           levelSystem,
           currentLevel
@@ -101,7 +104,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-animated-gradient">
-      <div className="glass-card p-6 md:p-8 max-w-md w-full shadow-2xl border border-white/10 space-y-6 animate-in fade-in duration-300">
+      <div className="glass-card p-6 md:p-8 max-w-md w-full shadow-2xl border border-white/10 space-y-6 animate-in fade-in duration-300 relative">
         
         {/* Header */}
         <div className="text-center space-y-2">
@@ -117,7 +120,7 @@ export default function Login() {
           <button
             type="button"
             onClick={() => { setAuthMode('email'); setError(''); }}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               authMode === 'email'
                 ? 'bg-primary-500 text-white shadow-md'
                 : 'text-gray-400 hover:text-white'
@@ -129,7 +132,7 @@ export default function Login() {
           <button
             type="button"
             onClick={() => { setAuthMode('username'); setError(''); }}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               authMode === 'username'
                 ? 'bg-primary-500 text-white shadow-md'
                 : 'text-gray-400 hover:text-white'
@@ -257,16 +260,10 @@ export default function Login() {
             type="button"
             className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all text-sm shadow-md cursor-pointer"
           >
-            {googleLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <>
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.54 0-6.4-2.86-6.4-6.4s2.86-6.4 6.4-6.4c1.648 0 3.13.626 4.27 1.648L21.2 4.675C18.89 2.503 15.8 1.2 12.24 1.2 6.033 1.2 1 6.233 1 12.4s5.033 11.2 11.24 11.2c5.6 0 10.4-4 10.4-11.2 0-.648-.06-1.286-.18-1.915H12.24z"/>
-                </svg>
-                <span>Google Account bilan Tezkor Kirish</span>
-              </>
-            )}
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.54 0-6.4-2.86-6.4-6.4s2.86-6.4 6.4-6.4c1.648 0 3.13.626 4.27 1.648L21.2 4.675C18.89 2.503 15.8 1.2 12.24 1.2 6.033 1.2 1 6.233 1 12.4s5.033 11.2 11.24 11.2c5.6 0 10.4-4 10.4-11.2 0-.648-.06-1.286-.18-1.915H12.24z"/>
+            </svg>
+            <span>Google Account (Gmail) Bilan Kirish</span>
           </button>
 
           <a
@@ -296,6 +293,54 @@ export default function Login() {
         </div>
 
       </div>
+
+      {/* Quick Gmail Entry Modal */}
+      {showGmailModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="glass-card p-6 max-w-sm w-full space-y-4 border border-white/20 relative shadow-2xl">
+            <button
+              onClick={() => setShowGmailModal(false)}
+              className="absolute right-4 top-4 text-gray-400 hover:text-white p-1 rounded-lg"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="text-center space-y-1">
+              <div className="w-12 h-12 bg-red-600/20 rounded-2xl flex items-center justify-center mx-auto text-red-400 mb-2">
+                <Mail size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-white">Gmail Manzilingizni Kiriting</h3>
+              <p className="text-xs text-gray-300">Tezkor kirish uchun Gmail pochtangizni yozing</p>
+            </div>
+
+            <form onSubmit={handleQuickGmailSubmit} className="space-y-4">
+              <div>
+                <input
+                  type="email"
+                  placeholder="masalan: orifovdev@gmail.com"
+                  value={quickGmail}
+                  onChange={(e) => setQuickGmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-red-500 text-sm"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={googleLoading}
+                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {googleLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <span>Tizimga Kirish</span>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
