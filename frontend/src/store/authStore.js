@@ -120,8 +120,6 @@ export const useAuthStore = create((set, get) => ({
       cleanEmail = `${cleanEmail}@gmail.com`
     }
     const cleanName = (name || cleanEmail.split('@')[0] || 'Foydalanuvchi').replace('@', '').trim()
-    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
-    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.startsWith('maxa') || cleanEmail.startsWith('or1fovv') || cleanEmail.includes('maxmudorifov36')
 
     const emailUser = {
       id: `email-${cleanEmail.replace(/[^a-z0-9]/gi, '')}`,
@@ -130,8 +128,8 @@ export const useAuthStore = create((set, get) => ({
       lastName: '',
       username: cleanEmail.split('@')[0],
       email: cleanEmail,
-      role: isAdmin ? 'admin' : 'user',
-      isPremium: isAdmin ? true : false,
+      role: 'user', // Form text login gets standard user role for security
+      isPremium: false,
       levelSystem: levelSystem || 'ielts',
       currentLevel: currentLevel || '6.0',
       language: 'uz',
@@ -145,13 +143,11 @@ export const useAuthStore = create((set, get) => ({
       createdAt: new Date().toISOString(),
     }
 
-    // Set user INSTANTLY (0ms delay) so screen never hangs on loader
     localStorage.setItem('web_user_token', emailUser.id)
     localStorage.setItem('web_user_profile', JSON.stringify(emailUser))
     localStorage.removeItem('demo_mode')
     set({ user: emailUser, token: emailUser.id, isLoading: false })
 
-    // Background sync with API
     apiAuthEmail({ email: cleanEmail, name: cleanName, levelSystem, currentLevel })
       .then(res => {
         if (res && res.token && res.user) {
@@ -168,7 +164,6 @@ export const useAuthStore = create((set, get) => ({
   loginWeb: async ({ identifier, name, levelSystem, currentLevel }) => {
     const cleanInput = (identifier || name || 'user').replace('@', '').trim()
     const cleanName = (name || identifier || 'Foydalanuvchi').replace('@', '').trim()
-    const isAdmin = cleanInput.toLowerCase().includes('maxa') || cleanInput.toLowerCase().includes('or1fovv') || cleanInput.toLowerCase().includes('maxmudorifov36')
 
     const localUser = {
       id: `web-${cleanInput.replace(/[^a-z0-9]/gi, '')}`,
@@ -177,8 +172,8 @@ export const useAuthStore = create((set, get) => ({
       lastName: '',
       username: cleanInput,
       email: `${cleanInput}@gmail.com`,
-      role: isAdmin ? 'admin' : 'user',
-      isPremium: isAdmin ? true : false,
+      role: 'user', // Form text login gets standard user role for security
+      isPremium: false,
       levelSystem: levelSystem || 'ielts',
       currentLevel: currentLevel || '6.0',
       language: 'uz',
@@ -192,13 +187,11 @@ export const useAuthStore = create((set, get) => ({
       createdAt: new Date().toISOString(),
     }
 
-    // Set user INSTANTLY (0ms delay) so screen never hangs on loader
     localStorage.setItem('web_user_token', localUser.id)
     localStorage.setItem('web_user_profile', JSON.stringify(localUser))
     localStorage.removeItem('demo_mode')
     set({ user: localUser, token: localUser.id, isLoading: false })
 
-    // Background sync with API
     apiWebLogin({ identifier: cleanInput, name: cleanName, levelSystem, currentLevel })
       .then(res => {
         if (res && typeof res === 'object' && res.token && res.user) {

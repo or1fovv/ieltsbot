@@ -202,16 +202,7 @@ router.post('/auth-email', async (req, res) => {
       include: { progressStats: true },
     });
 
-    if (user) {
-      // Ensure admin email has role='admin'
-      if (isAdmin && user.role !== 'admin') {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { role: 'admin', isPremium: true },
-          include: { progressStats: true },
-        });
-      }
-    } else {
+    if (!user) {
       // Create new user with email
       const generatedTelegramId = BigInt(Math.floor(100000000 + Math.random() * 900000000));
       const baseUsername = cleanEmail.split('@')[0].replace(/[^a-z0-9_]/gi, '');
@@ -224,8 +215,8 @@ router.post('/auth-email', async (req, res) => {
           firstName: displayName,
           username: uniqueUsername,
           email: cleanEmail,
-          role: isAdmin ? 'admin' : 'user',
-          isPremium: isAdmin ? true : false,
+          role: 'user', // Standard user role
+          isPremium: false,
           levelSystem: levelSystem || 'ielts',
           currentLevel: currentLevel || '5.0',
           language: 'uz',

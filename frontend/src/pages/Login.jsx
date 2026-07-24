@@ -14,10 +14,6 @@ export default function Login() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Quick Gmail Modal state
-  const [showGmailModal, setShowGmailModal] = useState(false)
-  const [quickGmail, setQuickGmail] = useState('')
-
   // Supabase Auth session listener
   useEffect(() => {
     const checkSession = async () => {
@@ -34,32 +30,18 @@ export default function Login() {
   }, [loginGoogle])
 
   const handleGoogleLogin = async () => {
-    setShowGmailModal(true)
-  }
-
-  const handleQuickGmailSubmit = async (e) => {
-    if (e && e.preventDefault) e.preventDefault()
-    let inputVal = quickGmail.trim().toLowerCase()
-    if (!inputVal) {
-      alert("Iltimos, Gmail manzilingizni yozing!")
-      return
-    }
-    if (!inputVal.includes('@')) {
-      inputVal = `${inputVal}@gmail.com`
-    }
-
     try {
       setGoogleLoading(true)
-      await loginEmail({
-        email: inputVal,
-        name: inputVal.split('@')[0],
-        levelSystem,
-        currentLevel
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
       })
-      setShowGmailModal(false)
+      if (error) throw error
     } catch (err) {
-      alert("Kirishda xatolik yuz berdi: " + (err.response?.data?.error || err.message))
-    } finally {
+      console.error('Google OAuth error:', err)
+      setError("Google orqali kirishda xato: " + err.message)
       setGoogleLoading(false)
     }
   }
@@ -240,54 +222,6 @@ export default function Login() {
         </div>
 
       </div>
-
-      {/* Quick Gmail Entry Modal */}
-      {showGmailModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="glass-card p-6 max-w-sm w-full space-y-4 border border-white/20 relative shadow-2xl">
-            <button
-              onClick={() => setShowGmailModal(false)}
-              className="absolute right-4 top-4 text-gray-400 hover:text-white p-1 rounded-lg cursor-pointer"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="text-center space-y-1">
-              <div className="w-12 h-12 bg-red-600/20 rounded-2xl flex items-center justify-center mx-auto text-red-400 mb-2">
-                <Mail size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-white">Gmail Manzilingizni Kiriting</h3>
-              <p className="text-xs text-gray-300">Tezkor kirish uchun Gmail pochtangizni yozing</p>
-            </div>
-
-            <form onSubmit={handleQuickGmailSubmit} className="space-y-4">
-              <div>
-                <input
-                  type="text"
-                  placeholder="masalan: maxmudorifov36@gmail.com yoki maxa"
-                  value={quickGmail}
-                  onChange={(e) => setQuickGmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-red-500 text-sm"
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={googleLoading}
-                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {googleLoading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <span>Tizimga Kirish</span>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
