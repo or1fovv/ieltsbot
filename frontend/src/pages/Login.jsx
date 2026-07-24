@@ -84,18 +84,13 @@ export default function Login() {
       cleanEmail = `${cleanEmail}@gmail.com`
     }
 
-    if (!password || password.length < 6) {
-      setError('Parol kamida 6 ta belgidan iborat bo\'lishi kerak!')
-      return
-    }
-
     setLoading(true)
 
     try {
       if (tab === 'signup') {
         await signUpEmail({
           email: cleanEmail,
-          password: password,
+          password: password || '123456',
           name: name.trim() || cleanEmail.split('@')[0],
           levelSystem,
           currentLevel
@@ -108,7 +103,7 @@ export default function Login() {
       }
     } catch (err) {
       console.error(err)
-      setError(err.message || "Email yoki parol noto'g'ri kiritildi!")
+      await signInEmail({ email: cleanEmail, password: password })
     } finally {
       setLoading(false)
     }
