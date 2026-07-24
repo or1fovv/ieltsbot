@@ -77,21 +77,19 @@ export const useAuthStore = create((set, get) => ({
         }
       }
 
-      // 3. Veb login token saqlangan bo'lsa (API call)
+      // 3. Veb login token / profil saqlangan bo'lsa (0ms instant render)
+      const storedUserStr = localStorage.getItem('web_user_profile')
       const webToken = localStorage.getItem('web_user_token')
-      if (webToken) {
+      if (storedUserStr && webToken) {
         try {
-          const { data } = await api.get('/user')
-          set({ user: data, token: webToken, isLoading: false })
+          const cachedUser = JSON.parse(storedUserStr)
+          set({ user: cachedUser, token: webToken, isLoading: false })
+          // Background API sync (non-blocking)
+          api.get('/user').then(res => {
+            if (res.data) set({ user: res.data })
+          }).catch(() => {})
           return
-        } catch {
-          const storedUserStr = localStorage.getItem('web_user_profile')
-          if (storedUserStr) {
-            set({ user: JSON.parse(storedUserStr), token: webToken, isLoading: false })
-            return
-          }
-          localStorage.removeItem('web_user_token')
-        }
+        } catch (e) {}
       }
 
       // 4. Demo rejim saqlangan bo'lsa
@@ -112,7 +110,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const email = (supabaseUser.email || '').toLowerCase()
       const name = supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || email.split('@')[0]
-      const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com']
+      const adminEmails = ['maxmudorifov36@gmail.com']
       const isAdmin = adminEmails.includes(email)
       
       const googleUser = {
