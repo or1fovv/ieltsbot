@@ -8,8 +8,11 @@ async function main() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Clear existing topics to re-populate cleanly
+  // Clear related tables first (foreign key order)
+  await prisma.submission.deleteMany({});
+  await prisma.usedTopic.deleteMany({});
   await prisma.dailyTopic.deleteMany({});
+
 
   // ================================================================
   // IELTS SPEAKING — Part 1 (10 topics across levels)
