@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Shield, Zap, RefreshCw, CheckCircle, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
@@ -10,6 +10,13 @@ export default function Admin() {
   const [loadingPremium, setLoadingPremium] = useState(false)
   const [loadingLimit, setLoadingLimit] = useState(false)
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    // Agar foydalanuvchi admin bo'lmasa, uni darhol ortga qaytaramiz
+    if (user && user.role !== 'admin') {
+      navigate('/')
+    }
+  }, [user, navigate])
 
   const handleTogglePremium = async () => {
     try {

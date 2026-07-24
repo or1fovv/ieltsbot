@@ -17,6 +17,8 @@ model User {
   firstName   String    @map("first_name")
   lastName    String?   @map("last_name")
   username    String?
+  email       String?   @unique
+  role        String    @default("user") // "user" yoki "admin"
   levelSystem String    @default("ielts") @map("level_system") // "ielts" yoki "cefr"
   currentLevel String   @default("5.0") @map("current_level")  // IELTS: "5.0"-"9.0", CEFR: "A1"-"C2"
   language    String    @default("uz") // "uz", "ru", "en"

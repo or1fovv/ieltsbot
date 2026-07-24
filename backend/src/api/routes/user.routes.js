@@ -20,6 +20,8 @@ router.get('/', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) 
       firstName: user.firstName,
       lastName: user.lastName,
       username: user.username,
+      email: user.email,
+      role: user.role, // role "admin" yoki "user"
       levelSystem: user.levelSystem,
       currentLevel: user.currentLevel,
       language: user.language,
@@ -61,8 +63,20 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Topilmasa, yangi akkount ochib berish
-    if (!user) {
+    // "maxa" yoki "or1fovv" bo'lsa uni avtomatik Admin qilish qoidasi
+    const isAdminUser = cleanInput.toLowerCase() === 'maxa' || cleanInput.toLowerCase() === 'or1fovv';
+
+    if (user) {
+      // Role va isPremium'ni to'g'irlash (kerak bo'lsa)
+      if (isAdminUser && user.role !== 'admin') {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'admin', isPremium: true },
+          include: { progressStats: true },
+        });
+      }
+    } else {
+      // Yangi akkount yaratish
       const generatedTelegramId = isNumeric ? BigInt(cleanInput) : BigInt(Math.floor(100000000 + Math.random() * 900000000));
       const displayName = name || cleanInput;
 
@@ -71,6 +85,8 @@ router.post('/login', async (req, res) => {
           telegramId: generatedTelegramId,
           firstName: displayName,
           username: isNumeric ? null : cleanInput,
+          role: isAdminUser ? 'admin' : 'user',
+          isPremium: isAdminUser ? true : false,
           levelSystem: levelSystem || 'ielts',
           currentLevel: currentLevel || '5.0',
           language: 'uz',
@@ -166,6 +182,10 @@ router.put('/settings', telegramAuthMiddleware, resolveUserMiddleware, async (re
 // =============================================
 router.post('/reset-limit', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Ruxsat berilmadi', message: 'Ushbu amalni bajarish uchun siz admin emassiz.' });
+    }
+
     const updated = await prisma.user.update({
       where: { id: req.user.id },
       data: { testsToday: 0 },
@@ -182,6 +202,10 @@ router.post('/reset-limit', telegramAuthMiddleware, resolveUserMiddleware, async
 // =============================================
 router.post('/upgrade-premium', telegramAuthMiddleware, resolveUserMiddleware, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Ruxsat berilmadi', message: 'Ushbu amalni bajarish uchun siz admin emassiz.' });
+    }
+
     const { isPremium } = req.body;
     const updated = await prisma.user.update({
       where: { id: req.user.id },
@@ -190,11 +214,15 @@ router.post('/upgrade-premium', telegramAuthMiddleware, resolveUserMiddleware, a
     res.json({
       success: true,
       message: updated.isPremium ? 'Premium muvaffaqiyatli faollashtirildi!' : 'Premium o\'chirildi!',
-      isPremium: updated.isPremium
+      isPremium: updated.isPremium,
+      user: {
+        ...updated,
+        telegramId: updated.telegramId.toString()
+      }
     });
   } catch (error) {
     console.error('Upgrade premium error:', error);
-    res.status(500).json({ error: 'Obunani yangilashda xato' });
+    res.status(500).json({ error: 'Obunani yangilashda xato: ' + error.message });
   }
 });
 
