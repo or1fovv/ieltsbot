@@ -131,6 +131,24 @@ export async function resolveUserMiddleware(req, res, next) {
           include: { progressStats: true },
         });
       }
+
+      // If user still not found, let's create a new user dynamically (Web User)
+      if (!user) {
+        const cleanName = webId.replace('@', '').substring(0, 30);
+        // Generate a random big integer for telegramId to avoid database unique constraint
+        const randomTgId = BigInt(Math.floor(100000000 + Math.random() * 900000000));
+        
+        user = await prisma.user.create({
+          data: {
+            telegramId: randomTgId,
+            firstName: cleanName || 'Web User',
+            username: cleanName.toLowerCase() || 'webuser',
+            progressStats: { create: {} },
+          },
+          include: { progressStats: true },
+        });
+        console.log(`👤 New web user created dynamically: ${cleanName} (ID: ${user.id})`);
+      }
     }
 
     if (!user) {

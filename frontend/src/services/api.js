@@ -146,10 +146,15 @@ const demoFeedback = {
   improved_version: 'Online learning can be highly effective when students have discipline and access to good materials. However, classroom learning still offers direct interaction and immediate feedback.',
 }
 
+// Topics, progress, history uchun: web_user_profile ham fallback oladi
 const isDemoMode = () =>
   import.meta.env.DEV ||
   localStorage.getItem('demo_mode') === '1' ||
-  !!localStorage.getItem('web_user_profile') // local web users get demo fallback
+  !!localStorage.getItem('web_user_profile')
+
+// Faqat submissions (writing/speaking) uchun: FAQAT explicit demo_mode='1' bo'lganda fake feedback
+// Boshqa hollarda real Groq AI baholash ishlaydi
+const isExplicitDemoMode = () => localStorage.getItem('demo_mode') === '1'
 
 const getStoredDemoSubmissions = () => {
   try {
@@ -307,7 +312,8 @@ export const submitWriting = async (topicId, content, subtype) => {
     }, { timeout: 120000 })
     return data
   } catch (error) {
-    if (!isDemoMode()) throw error
+    // Faqat aniq demo rejimda fake feedback - real foydalanuvchilar uchun xato ko'rsatish
+    if (!isExplicitDemoMode()) throw error
     const submission = createDemoSubmission({ type: 'writing', subtype, content })
     return { submission, remaining: 2 }
   }
@@ -328,7 +334,8 @@ export const submitSpeaking = async (topicId, audioBlob, subtype) => {
     })
     return data
   } catch (error) {
-    if (!isDemoMode()) throw error
+    // Faqat aniq demo rejimda fake feedback - real foydalanuvchilar uchun xato ko'rsatish
+    if (!isExplicitDemoMode()) throw error
     const submission = createDemoSubmission({
       type: 'speaking',
       subtype,
