@@ -155,11 +155,8 @@ export async function resolveUserMiddleware(req, res, next) {
       return res.status(401).json({ error: 'Foydalanuvchi topilmadi. Qayta ro\'yxatdan o\'ting.' });
     }
 
-    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com'];
-    const isAdminUser = adminEmails.includes((user.email || '').toLowerCase()) ||
-      (user.username || '').toLowerCase().includes('maxa') ||
-      (user.username || '').toLowerCase().includes('or1fovv') ||
-      (user.email || '').toLowerCase().includes('maxmudorifov36');
+    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com'];
+    const isAdminUser = adminEmails.includes((user.email || '').toLowerCase());
 
     // Format for request context
     req.user = {

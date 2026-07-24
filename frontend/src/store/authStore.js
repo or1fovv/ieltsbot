@@ -112,14 +112,14 @@ export const useAuthStore = create((set, get) => ({
     try {
       const email = (supabaseUser.email || '').toLowerCase()
       const name = supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || email.split('@')[0]
-      const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
-      const isAdmin = adminEmails.includes(email) || email.includes('maxmudorifov36')
+      const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com']
+      const isAdmin = adminEmails.includes(email)
       
       const googleUser = {
         id: supabaseUser.id || `google-${email.replace(/[^a-z0-9]/gi, '')}`,
         telegramId: '000000000',
         firstName: name,
-        username: email.split('@')[0] || 'admin',
+        username: email.split('@')[0] || 'user',
         email: email,
         role: isAdmin ? 'admin' : 'user',
         isPremium: isAdmin ? true : false,
@@ -164,8 +164,8 @@ export const useAuthStore = create((set, get) => ({
   signUpEmail: async ({ email, password, name, levelSystem, currentLevel }) => {
     const cleanEmail = (email || '').trim().toLowerCase()
     const cleanName = (name || cleanEmail.split('@')[0] || 'Foydalanuvchi').replace('@', '').trim()
-    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
-    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.includes('maxmudorifov36') || cleanEmail.startsWith('maxa')
+    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com']
+    const isAdmin = adminEmails.includes(cleanEmail)
 
     if (!password || password.length < 6) {
       throw new Error('Parol kamida 6 ta belgidan iborat bo\'lishi kerak!')
@@ -230,8 +230,8 @@ export const useAuthStore = create((set, get) => ({
       throw new Error("Email yoki parol noto'g'ri kiritildi!")
     }
 
-    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com', 'maxa@gmail.com', 'admin@gmail.com']
-    const isAdmin = adminEmails.includes(cleanEmail) || cleanEmail.includes('maxmudorifov36') || cleanEmail.startsWith('maxa')
+    const adminEmails = ['maxmudorifov36@gmail.com', 'orifovdev@gmail.com', 'or1fovv@gmail.com']
+    const isAdmin = adminEmails.includes(cleanEmail)
 
     const emailUser = {
       id: authData.user.id,
