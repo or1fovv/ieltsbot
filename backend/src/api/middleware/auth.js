@@ -111,8 +111,9 @@ export async function resolveUserMiddleware(req, res, next) {
     else if (req.webUserId) {
       const webId = req.webUserId;
 
-      // Try finding by UUID id
-      if (webId.length > 20) {
+      // Try finding by UUID id (only if valid UUID format)
+      const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (webId.length > 20 && isValidUUID.test(webId)) {
         user = await prisma.user.findUnique({
           where: { id: webId },
           include: { progressStats: true },
