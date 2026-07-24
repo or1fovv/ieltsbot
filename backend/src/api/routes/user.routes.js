@@ -214,13 +214,15 @@ router.post('/auth-email', async (req, res) => {
     } else {
       // Create new user with email
       const generatedTelegramId = BigInt(Math.floor(100000000 + Math.random() * 900000000));
-      const displayName = name || cleanEmail.split('@')[0];
+      const baseUsername = cleanEmail.split('@')[0].replace(/[^a-z0-9_]/gi, '');
+      const uniqueUsername = `${baseUsername}_${Math.floor(100 + Math.random() * 900)}`;
+      const displayName = name || baseUsername;
 
       user = await prisma.user.create({
         data: {
           telegramId: generatedTelegramId,
           firstName: displayName,
-          username: cleanEmail.split('@')[0],
+          username: uniqueUsername,
           email: cleanEmail,
           role: isAdmin ? 'admin' : 'user',
           isPremium: isAdmin ? true : false,
