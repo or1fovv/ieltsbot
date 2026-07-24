@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import api, { authEmail as apiAuthEmail } from '../services/api'
-import { supabase } from '../services/supabaseClient'
+
+// Lazy-load supabase — it's ~200KB and not needed for cached-user fast path
+let _supabase = null
+const getSupabase = async () => {
+  if (!_supabase) {
+    const mod = await import('../services/supabaseClient')
+    _supabase = mod.supabase
+  }
+  return _supabase
+}
 
 const demoUser = {
   id: 'demo-user-guest',
@@ -29,16 +38,52 @@ export const useAuthStore = create((set, get) => ({
   
   initAuth: async (initData, isDevMock = false) => {
     try {
-      set({ isLoading: true })
-      
-      // 1. OAuth Redirect Handler: Direct Session check
+      // ============ FAST PATH (0ms) ============
+      // 1. Cached web user → instant render, no network calls
+      const storedUserStr = localStorage.getItem('web_user_profile')
+      const webToken = localStorage.getItem('web_user_token')
+      if (storedUserStr && webToken) {
+        try {
+          const cachedUser = JSON.parse(storedUserStr)
+          set({ user: cachedUser, token: webToken, isLoading: false })
+          // Background sync (non-blocking)
+          api.get('/user').then(res => {
+            if (res.data) set({ user: res.data })
+          }).catch(() => {})
+          return
+        } catch (e) {}
+      }
+
+      // 2. Demo mode → instant
+      if (localStorage.getItem('demo_mode') === '1' || isDevMock) {
+        set({ user: demoUser, token: 'demo-token', isLoading: false })
+        return
+      }
+
+      // 3. Telegram initData → one API call
+      if (initData) {
+        localStorage.setItem('tg_init_data', initData)
+        try {
+          const { data } = await api.get('/user')
+          set({ user: data, token: initData, isLoading: false })
+          return
+        } catch (e) {
+          console.warn('Telegram user fetch error:', e.message)
+        }
+      }
+
+      // ============ SLOW PATH (supabase needed) ============
+      // Only load supabase if we actually need it (no cached user, no demo, no TG)
+      const supabase = await getSupabase()
+
+      // 4. OAuth Redirect Handler
       const { data: { session: initialSession } } = await supabase.auth.getSession()
       if (initialSession?.user) {
         await get().loginGoogle(initialSession.user)
         return
       }
 
-      // 2. PKCE Code Check (?code=...)
+      // 5. PKCE Code Check (?code=...)
       const searchParams = new URLSearchParams(window.location.search)
       const authCode = searchParams.get('code')
       if (authCode) {
@@ -54,7 +99,7 @@ export const useAuthStore = create((set, get) => ({
         }
       }
 
-      // 3. Implicit Hash Fragment Check (#access_token=...)
+      // 6. Implicit Hash Fragment Check (#access_token=...)
       if (window.location.hash.includes('access_token=')) {
         await new Promise(r => setTimeout(r, 300))
         const { data: { session: hashSession } } = await supabase.auth.getSession()
@@ -63,39 +108,6 @@ export const useAuthStore = create((set, get) => ({
           await get().loginGoogle(hashSession.user)
           return
         }
-      }
-
-      // 2. Telegram initData bo'lsa
-      if (initData) {
-        localStorage.setItem('tg_init_data', initData)
-        try {
-          const { data } = await api.get('/user')
-          set({ user: data, token: initData, isLoading: false })
-          return
-        } catch (e) {
-          console.warn('Telegram user fetch error:', e.message)
-        }
-      }
-
-      // 3. Veb login token / profil saqlangan bo'lsa (0ms instant render)
-      const storedUserStr = localStorage.getItem('web_user_profile')
-      const webToken = localStorage.getItem('web_user_token')
-      if (storedUserStr && webToken) {
-        try {
-          const cachedUser = JSON.parse(storedUserStr)
-          set({ user: cachedUser, token: webToken, isLoading: false })
-          // Background API sync (non-blocking)
-          api.get('/user').then(res => {
-            if (res.data) set({ user: res.data })
-          }).catch(() => {})
-          return
-        } catch (e) {}
-      }
-
-      // 4. Demo rejim saqlangan bo'lsa
-      if (localStorage.getItem('demo_mode') === '1' || isDevMock) {
-        set({ user: demoUser, token: 'demo-token', isLoading: false })
-        return
       }
 
       set({ user: null, token: null, isLoading: false })
@@ -169,6 +181,7 @@ export const useAuthStore = create((set, get) => ({
       throw new Error('Parol kamida 6 ta belgidan iborat bo\'lishi kerak!')
     }
 
+    const supabase = await getSupabase()
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: cleanEmail,
       password: password,
@@ -248,6 +261,7 @@ export const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     try {
+      const supabase = await getSupabase()
       await supabase.auth.signOut()
     } catch (e) {
       console.warn('Supabase signout error:', e.message)
@@ -268,9 +282,11 @@ export const useAuthStore = create((set, get) => ({
   },
 }))
 
-// Google OAuth redirect avtomatik tutib olish
-supabase.auth.onAuthStateChange(async (event, session) => {
-  if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
-    useAuthStore.getState().loginGoogle(session.user)
-  }
-})
+// Deferred: Google OAuth redirect listener — runs after supabase loads
+getSupabase().then(supabase => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+      useAuthStore.getState().loginGoogle(session.user)
+    }
+  })
+}).catch(() => {})

@@ -10,19 +10,33 @@ export default defineConfig({
   build: {
     target: 'esnext',
     cssCodeSplit: true,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/[name]-[hash]-v4.js',
-        chunkFileNames: 'assets/[name]-[hash]-v4.js',
-        assetFileNames: 'assets/[name]-[hash]-v4.[ext]',
+        entryFileNames: 'assets/[name]-[hash]-v5.js',
+        chunkFileNames: 'assets/[name]-[hash]-v5.js',
+        assetFileNames: 'assets/[name]-[hash]-v5.[ext]',
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-              return 'vendor'
+            // Core React — always needed
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('scheduler')) {
+              return 'vendor-react'
             }
+            // Supabase — heavy, lazy-loaded
+            if (id.includes('@supabase') || id.includes('supabase')) {
+              return 'vendor-supabase'
+            }
+            // Charts — only Progress page
+            if (id.includes('recharts') || id.includes('d3-') || id.includes('victory')) {
+              return 'vendor-charts'
+            }
+            // Icons — tree-shaken but still chunked
             if (id.includes('lucide-react')) {
-              return 'icons'
+              return 'vendor-icons'
+            }
+            // TWA SDK
+            if (id.includes('@twa-dev')) {
+              return 'vendor-twa'
             }
           }
         }

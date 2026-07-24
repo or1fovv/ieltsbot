@@ -1,7 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { LogIn, UserPlus, Sparkles, Send, Mail, Lock, User, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { supabase } from '../services/supabaseClient'
+
+// Lazy-load supabase — only when Login page is rendered
+let _supabase = null
+const getSupabase = async () => {
+  if (!_supabase) {
+    const mod = await import('../services/supabaseClient')
+    _supabase = mod.supabase
+  }
+  return _supabase
+}
 
 export default function Login() {
   const { signUpEmail, signInEmail, loginDemo, loginGoogle } = useAuthStore()
@@ -19,7 +28,9 @@ export default function Login() {
 
   // Supabase Auth session listener for Google OAuth callback
   useEffect(() => {
-    const checkSession = async () => {
+    let subscription = null
+    const init = async () => {
+      const supabase = await getSupabase()
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         try {
@@ -28,18 +39,19 @@ export default function Login() {
           console.warn("Google OAuth sync error:", err.message)
         }
       }
-    }
-    checkSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        try {
-          await loginGoogle(session.user)
-        } catch (err) {
-          console.warn("Google auth state listener error:", err.message)
+      const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          try {
+            await loginGoogle(session.user)
+          } catch (err) {
+            console.warn("Google auth state listener error:", err.message)
+          }
         }
-      }
-    })
+      })
+      subscription = sub
+    }
+    init()
 
     return () => subscription?.unsubscribe?.()
   }, [loginGoogle])
@@ -48,6 +60,7 @@ export default function Login() {
     try {
       setGoogleLoading(true)
       setError('')
+      const supabase = await getSupabase()
       const targetRedirect = window.location.origin.includes('localhost')
         ? 'https://ieltsbot-bay.vercel.app'
         : window.location.origin
