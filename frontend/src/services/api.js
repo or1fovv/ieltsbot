@@ -11,6 +11,21 @@ const api = axios.create({
   },
 })
 
+// Request interceptor: tokenlarni har bir so'rovga biriktirish
+api.interceptors.request.use((config) => {
+  const webToken = localStorage.getItem('web_user_token')
+  const tgInitData = localStorage.getItem('tg_init_data')
+
+  if (webToken) {
+    config.headers['x-web-user-id'] = webToken
+    config.headers['Authorization'] = `Bearer ${webToken}`
+  }
+  if (tgInitData) {
+    config.headers['x-telegram-init-data'] = tgInitData
+  }
+  return config
+})
+
 const demoTopics = {
   speaking: [
     {
